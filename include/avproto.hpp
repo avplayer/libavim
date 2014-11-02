@@ -29,7 +29,7 @@ avif * av_if_handover(boost::shared_ptr<avif> avinterface);
 bool av_config(std::string pkey, std::string  cert);
 
 // 配置av路由表 允许使用 * 这样的地址设定默认路由
-bool av_route(int op /*add mod del*/, std::string addr, std::string gateway, std::string interfacename);
+bool av_route(av_route_op op /*add mod del*/, std::string addr, std::string gateway, std::string interfacename);
 
 // 发送数据， av层会自动调用 RSA private key 加密数据
 bool av_sendto(std::string dest_address, std::string message);
