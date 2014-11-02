@@ -1,9 +1,22 @@
 
+#pragma once
+
 #include <string>
+#include <avif.hpp>
+
+enum av_route_op{
+	AVROUTE_ADD,
+	AVROUTE_MOD,
+	AVROUTE_DEL
+};
+
 /*
  * 启动 av 协议核心，一旦调用，那么 av 核心就启动起来了，等待 av 协议的处理
  */
-void av_start();
+void av_start(boost::asio::io_service *);
+
+// 添加 avif 接口，用于 av_route 操作
+avif * av_if_handover(boost::shared_ptr<avif> avinterface);
 
 /*
  * 配置 av 协议地址，类似 ifconfig 的作用。
@@ -16,7 +29,7 @@ void av_start();
 bool av_config(std::string pkey, std::string  cert);
 
 // 配置av路由表 允许使用 * 这样的地址设定默认路由
-bool av_route(int op /*add mod del*/, std::string addr, std::string gateway);
+bool av_route(int op /*add mod del*/, std::string addr, std::string gateway, std::string interfacename);
 
 // 发送数据， av层会自动调用 RSA private key 加密数据
 bool av_sendto(std::string dest_address, std::string message);
