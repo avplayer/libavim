@@ -35,7 +35,21 @@ avtcpif::avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket> _sock, std::str
 	m_local_addr = av_address_from_string(local_addr);
 }
 
-// TODO
+std::string avtcpif::get_ifname()
+{
+    return ifname;
+}
+
+RSA* avtcpif::get_rsa_key()
+{
+    return _rsa;
+}
+
+proto::base::avAddress* avtcpif::if_address()
+{
+    return &m_local_addr;
+}
+
 bool avtcpif::async_master_handshake(bool as_master, boost::asio::yield_context yield_context)
 {
 	boost::uint32_t l;
@@ -80,7 +94,6 @@ bool avtcpif::async_master_handshake(bool as_master, boost::asio::yield_context 
 	return !ec;
 }
 
-// TODO
 bool avtcpif::slave_handshake(bool as_master)
 {
 	boost::uint32_t l;

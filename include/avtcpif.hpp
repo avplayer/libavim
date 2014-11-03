@@ -11,6 +11,7 @@ struct avtcpif : boost::noncopyable
 {
 public:
 	avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket>, std::string local_addr, RSA * _key, X509 *);
+	~avtcpif();
 
 	// TCP接口，有 master/slave 模式之分 服务器使用 master 模式，客户端则是 slave 模式
 	// 区别只是登录时候的握手不一样，所以就在 handshake 这里直接设定就可以了
@@ -22,33 +23,16 @@ public:
 	std::string remote_addr();
 
 public: // 下面是实现 avif 接口
-	std::string get_ifname()
-	{
-		return ifname;
-	}
-
-	proto::base::avAddress * if_address()
-	{
-		return &m_local_addr;
-	}
-
-	RSA * get_rsa_key()
-	{
-		return _rsa;
-	}
-
-	// TODO 从 TCP 连接上读取一个 avPacket
+	std::string get_ifname();
+	proto::base::avAddress * if_address();
+	RSA * get_rsa_key();
 	proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context);
-
-	// TODO 从 TCP 连接上写入一个 avPacket
     bool async_write_packet(proto::base::avPacket*, boost::asio::yield_context yield_context);
 
-	~avtcpif();
-
+private:
 	// 分配一个 if 接口名字
 	static std::string allocate_ifname();
 
-private:
 	std::string ifname;
 	RSA * _rsa;
 	X509 * _x509;
