@@ -34,7 +34,7 @@ static void interface_runner(boost::asio::yield_context yield_context, avif avin
 	for(;;)
 	{
 		// 读取一个数据包
-		avim::proto::base::avPacket * ret  = avinterface.async_read_packet(yield_context[ec]);
+		proto::base::avPacket * ret  = avinterface.async_read_packet(yield_context[ec]);
 
 		// TODO 执行客户端校验
 

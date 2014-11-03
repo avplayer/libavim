@@ -18,10 +18,10 @@ namespace detail {
 		virtual RSA * get_rsa_key() = 0;
 
 		// 读取 av数据包
-		virtual avim::proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context) = 0;
+		virtual proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context) = 0;
 
 		// 发送 av数据包
-		virtual bool async_write_packet(avim::proto::base::avPacket*, boost::asio::yield_context yield_context) = 0;
+		virtual bool async_write_packet(proto::base::avPacket*, boost::asio::yield_context yield_context) = 0;
 	};
 
 	template<class RealImpl>
@@ -38,13 +38,13 @@ namespace detail {
 		}
 
 		// 读取 av数据包
-		avim::proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context)
+		proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context)
 		{
 			return _impl->async_read_packet(yield_context);
 		}
 
 		// 发送 av数据包
-		bool async_write_packet(avim::proto::base::avPacket* pkt, boost::asio::yield_context yield_context)
+		bool async_write_packet(proto::base::avPacket* pkt, boost::asio::yield_context yield_context)
 		{
 			return _impl->async_write_packet(pkt, yield_context);
 		}
@@ -74,13 +74,13 @@ struct avif
 	}
 
 	// 读取 av数据包
-	avim::proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context)
+	proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context)
 	{
 		return _impl->async_read_packet(yield_context);
 	}
 
 	// 发送 av数据包
-    bool async_write_packet(avim::proto::base::avPacket* pkt, boost::asio::yield_context yield_context)
+    bool async_write_packet(proto::base::avPacket* pkt, boost::asio::yield_context yield_context)
 	{
 		return _impl->async_write_packet(pkt, yield_context);
 	}
@@ -114,13 +114,13 @@ struct avtcpif
 	}
 
 	// TODO 从 TCP 连接上读取一个 avPacket
-	avim::proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context)
+	proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context)
 	{
 
 	}
 
 	// TODO 从 TCP 连接上写入一个 avPacket
-    bool async_write_packet(avim::proto::base::avPacket*, boost::asio::yield_context yield_context)
+    bool async_write_packet(proto::base::avPacket*, boost::asio::yield_context yield_context)
 	{
 
 	}
