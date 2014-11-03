@@ -1,11 +1,13 @@
 
 #pragma once
 
+#include <boost/noncopyable.hpp>
+
 #include "avif.hpp"
 
 
 // 这个是 TCP 协议的接口
-struct avtcpif
+struct avtcpif : boost::noncopyable
 {
 public:
 	avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket>, std::string local_addr, RSA * _key);

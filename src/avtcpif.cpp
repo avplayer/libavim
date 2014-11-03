@@ -20,6 +20,7 @@ avtcpif::avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket> _sock, std::str
 	ifname = allocate_ifname();
 }
 
+// TODO
 bool avtcpif::async_master_handshake(bool as_master, boost::asio::yield_context yield_context)
 {
 	boost::system::error_code ec;
@@ -39,6 +40,7 @@ bool avtcpif::async_master_handshake(bool as_master, boost::asio::yield_context 
 		return false;
 }
 
+// TODO
 bool avtcpif::slave_handshake(bool as_master)
 {
 	boost::asio::write(*m_sock, boost::asio::buffer(m_local_addr_str));
