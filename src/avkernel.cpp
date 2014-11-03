@@ -114,7 +114,14 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		* 然后再调用 interface->async_write_packet 将数据发送出去
 		*/
 
-		avif interface = select_route(target);
+		avif * interface = select_route(target);
+		if( !interface )
+		{
+			ec = boost::asio::error::network_unreachable;
+			// 返回 no route to host 错误
+			handler(ec);
+			return ;
+		}
 
 
 		RSA * target_pubkey = find_RSA_pubkey(target);
@@ -136,26 +143,26 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 		// 第二次签名
 		std::string second_sign;
-		second_sign.resize(RSA_size(interface.get_rsa_key()) + data.length());
-		second_sign.resize(RSA_private_encrypt(first_pubencode.length(), (uint8_t*) first_pubencode.data(),(uint8_t*) &second_sign[0], interface.get_rsa_key(), RSA_PKCS1_OAEP_PADDING));
+		second_sign.resize(RSA_size(interface->get_rsa_key()) + data.length());
+		second_sign.resize(RSA_private_encrypt(first_pubencode.length(), (uint8_t*) first_pubencode.data(),(uint8_t*) &second_sign[0], interface->get_rsa_key(), RSA_PKCS1_OAEP_PADDING));
 
 		// 把加密后的数据写入avPacket
 		avpkt.set_payload(second_sign);
 
 		// 附上自己的 publickey
 		std::string pubkey;
-		pubkey.resize(BN_num_bytes(interface.get_rsa_key()->n));
+		pubkey.resize(BN_num_bytes(interface->get_rsa_key()->n));
 
-		BN_bn2bin(interface.get_rsa_key()->n,(uint8_t*) &pubkey[0]);
+		BN_bn2bin(interface->get_rsa_key()->n,(uint8_t*) &pubkey[0]);
 
 		avpkt.set_publickey(pubkey);
 		avpkt.mutable_src()->CopyFrom( av_address_from_string(target) );
-		avpkt.mutable_src()->CopyFrom( *interface.if_address() );
+		avpkt.mutable_src()->CopyFrom( *interface->if_address() );
 		avpkt.set_upperlayerpotocol("avim");
 
 		// TODO 添加其他
 
-		interface.async_write_packet(&avpkt, yield_context[ec]);
+		interface->async_write_packet(&avpkt, yield_context[ec]);
 
 		// 做完成通知
 		handler(ec);
@@ -189,7 +196,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	}
 
 	// TODO
-	avif select_route(std::string address)
+	avif * select_route(std::string address)
 	{
 	}
 

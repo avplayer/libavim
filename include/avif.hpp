@@ -104,6 +104,17 @@ struct avif
 		_impl.reset( new detail::avif_implement_wrapper<AV_IF_IMPL>(impl) );
 	}
 
+	avif(const avif &other)
+	{
+		_impl = other._impl;
+	}
+
+	avif(avif &&other)
+	{
+		_impl = other._impl;
+	}
+
+
 private:
 	boost::shared_ptr<detail::avif_implement_interface> _impl;
 };
