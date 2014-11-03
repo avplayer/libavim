@@ -1,6 +1,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
+#include <boost/atomic.hpp>
 #include <boost/asio.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/make_shared.hpp>
@@ -87,15 +88,25 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		handler(ec);
 	}
 
-	int async_sendto(std::string target, std::string data, avkernel::SendReadyHandler handler)
+	void async_sendto(std::string target, std::string data, avkernel::SendReadyHandler handler)
 	{
 		boost::asio::spawn(io_service, boost::bind(&avkernel_impl::async_sendto_op, shared_from_this(), target, data, handler, _1 ));
 	}
 
 	int sendto(std::string target, std::string data)
 	{
-		// TODO 转成 async 形式
+		boost::system::error_code ec;
+		boost::atomic_bool done;
+		done = false;
 
+		async_sendto(target, data, [&ec, &done](const boost::system::error_code & _ec)
+			{ ec = _ec; done = true;});
+
+		while( ! done )
+		{
+			io_service.run_one();
+		}
+		return ec.value();
 	}
 
 	RSA * find_RSA_pubkey(std::string address)
