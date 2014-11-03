@@ -114,7 +114,7 @@ static inline proto::base::avAddress av_address_from_string(std::string av_addre
 }
 
 // TODO 实现它
-static inline std::string av_address_to_string( const proto::base::avAddress &)
+static inline std::string av_address_to_string(const proto::base::avAddress &)
 {
 
 }
