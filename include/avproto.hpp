@@ -21,6 +21,9 @@ class avkernel : boost::noncopyable
 	boost::asio::io_service & io_service;
 	boost::shared_ptr<detail::avkernel_impl> _impl;
 public:
+
+	typedef boost::function<void(boost::system::error_code)> SendReadyHandler;
+
 	avkernel(boost::asio::io_service &);
 
 	bool add_interface(avif interface);

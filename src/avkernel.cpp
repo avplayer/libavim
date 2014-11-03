@@ -2,6 +2,8 @@
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 #include <boost/asio.hpp>
+#include <boost/enable_shared_from_this.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/regex.hpp>
 
 #include <avif.hpp>
@@ -11,14 +13,9 @@ class avkernel;
 namespace detail
 {
 
-class avkernel_impl : boost::noncopyable
+class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this<avkernel_impl>
 {
 	boost::asio::io_service & io_service;
-
-	avkernel_impl(boost::asio::io_service & _io_service)
-		: io_service(_io_service)
-	{
-	}
 
 	// FIXME
 	// TODO, 读取这个接口上的数据，然后转发数据！
@@ -53,9 +50,9 @@ class avkernel_impl : boost::noncopyable
 		boost::regex regex(targetAddress);
 	}
 
-	int sendto(std::string target, std::string data)
+	void async_sendto_op(std::string target, std::string data, avkernel::SendReadyHandler handler, boost::asio::yield_context yield_context)
 	{
-		// TODO
+		boost::system::error_code ec;
 		/*
 		*
 		* 我来说一下算法, 首先根据路由表选定需要的 interface
@@ -83,7 +80,22 @@ class avkernel_impl : boost::noncopyable
 		proto::base::avPacket avpkt;
 
 
-		interface.write_packet(&avpkt);
+		interface.async_write_packet(&avpkt, yield_context[ec]);
+
+		// 做完成通知
+
+		handler(ec);
+	}
+
+	int async_sendto(std::string target, std::string data, avkernel::SendReadyHandler handler)
+	{
+		boost::asio::spawn(io_service, boost::bind(&avkernel_impl::async_sendto_op, shared_from_this(), target, data, handler, _1 ));
+	}
+
+	int sendto(std::string target, std::string data)
+	{
+		// TODO 转成 async 形式
+
 	}
 
 	RSA * find_RSA_pubkey(std::string address)
@@ -96,6 +108,11 @@ class avkernel_impl : boost::noncopyable
 
 	}
 
+public:
+	avkernel_impl(boost::asio::io_service & _io_service)
+		: io_service(_io_service)
+	{
+	}
 
 	friend avkernel;
 };
@@ -105,7 +122,7 @@ class avkernel_impl : boost::noncopyable
 avkernel::avkernel(boost::asio::io_service & _io_service)
 	: io_service(_io_service)
 {
-	_impl.reset(new detail::avkernel_impl(io_service));
+	_impl = boost::make_shared<detail::avkernel_impl>(boost::ref(io_service));
 }
 
 bool avkernel::add_interface(avif avinterface)
