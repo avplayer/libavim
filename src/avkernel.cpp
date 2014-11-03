@@ -104,7 +104,8 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 		while( ! done )
 		{
-			io_service.run_one();
+			int ret = io_service.run_one();
+			BOOST_ASSERT(ret != 0 );
 		}
 		return ec.value();
 	}
