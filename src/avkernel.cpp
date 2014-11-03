@@ -18,6 +18,45 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 {
 	boost::asio::io_service & io_service;
 
+	// 优先查看 avinterface 然后再看其他接口的
+	bool is_send_to_me(const proto::base::avAddress & addr, avif * avinterface)
+	{
+	}
+
+	void process_recived_packet(boost::shared_ptr<proto::base::avPacket> avPacket, avif avinterface, boost::asio::yield_context yield_context)
+	{
+		// TODO 执行客户端校验
+		if(avPacket->has_publickey())
+		{
+			// 有 pubkey ， 比较内部数据库里的记录
+			// 如果和内部数据库的记录不一致
+			// 要使用 avgmp 协议请求一份证书来校验一遍
+
+			// 干这种事情的话，就需要开另外一个协程慢慢干了，呵呵
+			// 因此加到 TODO 列表
+
+			RSA * stored_key = find_RSA_pubkey(av_address_to_string(avPacket->src()));
+			if( !stored_key )
+			{
+				// TODO, 执行 证书请求，并在请求通过后，接受该 key 并同时接受该数据包，
+			}
+		}
+
+		// 查看据地地址，如果是自己，就交给上层
+
+		if( is_send_to_me(avPacket->dest(), &avinterface) )
+		{
+			// TODO 挂入本地接收列队，等待上层读取
+		}
+
+		// TODO 查找路由表
+
+		// TODO 转发过去
+
+		// TODO 找不到目的地址，就发回一个 目的地址不可达消息
+
+	}
+
 	// FIXME
 	// TODO, 读取这个接口上的数据，然后转发数据！
 	// 对每个 interface 执行的线程， 接收数据
@@ -28,17 +67,16 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		for(;;)
 		{
 			// 读取一个数据包
-			proto::base::avPacket * ret  = avinterface.async_read_packet(yield_context[ec]);
+			boost::shared_ptr<proto::base::avPacket> avpkt;
+			avpkt.reset(avinterface.async_read_packet(yield_context[ec]));
 
-			// TODO 执行客户端校验
+			if(avpkt)
+				boost::asio::spawn(io_service, boost::bind(&avkernel_impl::process_recived_packet, shared_from_this(), avpkt, _1));
 
-			// TODO 查找路由表
+			// 否则出错，删除该接口！
 
-			// TODO 转发过去
-
-			// TODO 找不到目的地址，就发回一个 目的地址不可达消息
+			// TODO
 		}
-
 	}
 
 	bool add_route(std::string targetAddress, std::string gateway, std::string ifname)

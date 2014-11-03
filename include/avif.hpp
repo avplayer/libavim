@@ -126,7 +126,6 @@ static inline proto::base::avAddress av_address_from_string(std::string av_addre
     return proto::base::avAddress();
 }
 
-// TODO 实现它
 static inline std::string av_address_to_string(const proto::base::avAddress & addr)
 {
 	if(addr.has_resource())
