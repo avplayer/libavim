@@ -134,3 +134,37 @@ bool avtcpif::async_write_packet(proto::base::avPacket* avpkt, boost::asio::yiel
 	boost::asio::async_write(*m_sock, m_send_buf, boost::asio::transfer_all(), yield_context[ec]);
 	return ! ec;
 }
+
+proto::base::avPacket* avtcpif::async_read_packet(boost::asio::yield_context yield_context)
+{
+	do {
+		proto::base::avTCPPacket pkt;
+		boost::uint32_t l;
+		boost::system::error_code ec;
+		// 接收用户的 av地址
+		int len = boost::asio::async_read(*m_sock, boost::asio::buffer(&l, sizeof(l)), yield_context[ec]);
+
+		if( len != sizeof(l))
+			return nullptr;
+
+		len = boost::asio::async_read(*m_sock, m_recv_buf, boost::asio::transfer_exactly(ntohl(l)), yield_context[ec]);
+
+		if( ec )
+			return nullptr;
+
+		std::istream inputstream(&m_recv_buf);
+
+		if(!pkt.ParseFromIstream(&inputstream))
+		{
+			return nullptr;
+		}
+
+		if(pkt.type() == 0)
+		{
+			proto::base::avPacket * avPacket = new proto::base::avPacket;
+			avPacket->CopyFrom(pkt.avpacket());
+			return avPacket;
+		}
+
+	}while(1);
+}

@@ -38,10 +38,7 @@ public: // 下面是实现 avif 接口
 	}
 
 	// TODO 从 TCP 连接上读取一个 avPacket
-	proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context)
-	{
-
-	}
+	proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context);
 
 	// TODO 从 TCP 连接上写入一个 avPacket
     bool async_write_packet(proto::base::avPacket*, boost::asio::yield_context yield_context);
