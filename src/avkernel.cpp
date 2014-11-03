@@ -27,18 +27,18 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		// TODO 移除 m_avifs 里相关条目
 	}
 
-	// 优先查看 avinterface 然后再看其他接口的
-	bool is_to_me(const proto::base::avAddress & addr, avif * avinterface)
+	bool is_to_me(const proto::base::avAddress & addr)
 	{
-		if(addr.username() == avinterface->if_address()->username() &&
-			addr.domain() == avinterface->if_address()->domain()
-		){
-			return true;
-		}
-
 		// 遍历 interface 做比较
-
-
+		for( const auto & i : m_avifs)
+		{
+			if(addr.username() == i.second.if_address()->username() &&
+				addr.domain() == i.second.if_address()->domain()
+			){
+				return true;
+			}
+		}
+		return false;
 	}
 
 	void process_recived_packet(boost::shared_ptr<proto::base::avPacket> avPacket, avif avinterface, boost::asio::yield_context yield_context)
@@ -62,7 +62,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 		// 查看据地地址，如果是自己，就交给上层
 
-		if( is_to_me(avPacket->dest(), &avinterface) )
+		if( is_to_me(avPacket->dest()) )
 		{
 			// TODO 挂入本地接收列队，等待上层读取
 		}
@@ -89,7 +89,10 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			avpkt.reset(avinterface.async_read_packet(yield_context[ec]));
 
 			if(avpkt)
-				boost::asio::spawn(io_service, boost::bind(&avkernel_impl::process_recived_packet, shared_from_this(), avpkt, avinterface, _1));
+			{
+				// boost::asio::spawn(io_service, boost::bind(&avkernel_impl::process_recived_packet, shared_from_this(), avpkt, avinterface, _1));
+				process_recived_packet(avpkt, avinterface, yield_context);
+			}
 
 			// 否则出错，删除该接口！
 

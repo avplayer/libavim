@@ -35,7 +35,7 @@ avtcpif::avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket> _sock, std::str
 	m_local_addr = av_address_from_string(local_addr);
 }
 
-std::string avtcpif::get_ifname()
+std::string avtcpif::get_ifname() const
 {
     return ifname;
 }
@@ -45,7 +45,7 @@ RSA* avtcpif::get_rsa_key()
     return _rsa;
 }
 
-proto::base::avAddress* avtcpif::if_address()
+const proto::base::avAddress* avtcpif::if_address() const
 {
     return &m_local_addr;
 }
