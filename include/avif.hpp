@@ -14,8 +14,8 @@
 namespace detail {
 
 	struct avif_implement_interface{
-		virtual std::string get_ifname() = 0 ;
-		virtual proto::base::avAddress * if_address() = 0;
+		virtual std::string get_ifname() const = 0 ;
+		virtual const proto::base::avAddress * if_address() const = 0;
 
 		virtual RSA * get_rsa_key() = 0;
 
@@ -29,12 +29,12 @@ namespace detail {
 	template<class RealImpl>
 	struct avif_implement_wrapper : public avif_implement_interface
 	{
-		std::string get_ifname()
+		std::string get_ifname() const
 		{
 			return _impl->get_ifname();
 		};
 
-		proto::base::avAddress * if_address()
+		const proto::base::avAddress * if_address() const
 		{
 			return _impl->if_address();
 		}
@@ -71,12 +71,12 @@ namespace detail {
 // 一个接口类， av核心用这个类来对外数据沟通，类似 linux 内核里的 sbk_buf
 struct avif
 {
-	std::string get_ifname()
+	std::string get_ifname() const
 	{
 		return _impl->get_ifname();
 	};
 
-	proto::base::avAddress * if_address()
+	const proto::base::avAddress * if_address() const
 	{
 		return _impl->if_address();
 	}

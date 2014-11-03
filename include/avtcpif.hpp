@@ -23,8 +23,8 @@ public:
 	std::string remote_addr();
 
 public: // 下面是实现 avif 接口
-	std::string get_ifname();
-	proto::base::avAddress * if_address();
+	std::string get_ifname() const;
+	const proto::base::avAddress * if_address() const;
 	RSA * get_rsa_key();
 	proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context);
     bool async_write_packet(proto::base::avPacket*, boost::asio::yield_context yield_context);
