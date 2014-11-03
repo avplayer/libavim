@@ -16,7 +16,7 @@ enum av_route_op{
 void av_start(boost::asio::io_service *);
 
 // 添加 avif 接口，用于 av_route 操作
-avif * av_if_handover(boost::shared_ptr<avif> avinterface);
+avif * av_if_handover(avif avinterface);
 
 /*
  * 配置 av 协议地址，类似 ifconfig 的作用。

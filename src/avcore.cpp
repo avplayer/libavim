@@ -8,10 +8,8 @@
 
 static boost::asio::io_service * av_service = NULL;
 
-int avtcpif::ifcount = 0;
-
 // avif 接口列表，通过 avif 名字查找
-std::map<std::string, boost::shared_ptr<avif> > avif_list;
+std::map<std::string, avif> avif_list;
 
 std::map<std::string, avif*> route_table;
 avif * default_router ;
@@ -29,14 +27,14 @@ static void remove_av_interface(std::string ifname)
 
 // FIXME
 // TODO, 读取这个接口上的数据，然后转发数据！
-static void interface_runner(boost::asio::yield_context yield_context, boost::shared_ptr<avif> avinterface)
+static void interface_runner(boost::asio::yield_context yield_context, avif avinterface)
 {
 	boost::system::error_code ec;
 
 	for(;;)
 	{
 		// 读取一个数据包
-		avim::proto::base::avPacket * ret  = avinterface->async_read_packet(yield_context[ec]);
+		avim::proto::base::avPacket * ret  = avinterface.async_read_packet(yield_context[ec]);
 
 		// TODO 执行客户端校验
 
@@ -51,16 +49,14 @@ static void interface_runner(boost::asio::yield_context yield_context, boost::sh
 }
 
 // 向 av协议移交 接口 层！
-avif * av_if_handover(boost::shared_ptr<avif> avinterface)
+avif * av_if_handover(avif avinterface)
 {
-	avif_list.insert( std::make_pair(avinterface->get_ifname(), avinterface) );
-
-	avinterface->set_remove_from_av(remove_av_interface);
+	avif_list.insert( std::make_pair(avinterface.get_ifname(), avinterface) );
 
 	// 开启为这个接口建立的循环！
 	boost::asio::spawn(*av_service, boost::bind(&interface_runner, _1, avinterface));
 
-	return avinterface.get();
+	return NULL;
 }
 
 // 向路由表添加
@@ -78,7 +74,7 @@ bool av_route(av_route_op op /*add mod del*/, std::string addr, std::string gate
 		if(addr == "*")
 		{
 			// 添加默认路由表
-			default_router = avif_list.find(interfacename)->second.get();
+			default_router = & avif_list.find(interfacename)->second;
 			return true;
 		}
 
@@ -86,7 +82,7 @@ bool av_route(av_route_op op /*add mod del*/, std::string addr, std::string gate
 		if( route_table.find(addr) != route_table.end())
 			return false;
 
-		route_table.insert(std::make_pair(addr, avif_list.find(interfacename)->second.get()));
+		route_table.insert(std::make_pair(addr, &(avif_list.find(interfacename)->second)));
 		return true;
 	}
 }
