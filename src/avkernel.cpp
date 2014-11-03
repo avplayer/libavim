@@ -19,9 +19,12 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	boost::asio::io_service & io_service;
 	std::map<std::string, avif> m_avifs;
 
-	bool remove_interface(std::string avifname)
+	// 移除接口的时候调用
+	void remove_interface(std::string avifname)
 	{
+		// TODO 移除路由表上使用该接口的所有项目
 
+		// TODO 移除 m_avifs 里相关条目
 	}
 
 	// 优先查看 avinterface 然后再看其他接口的
