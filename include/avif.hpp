@@ -97,6 +97,12 @@ struct avif
 		return _impl->async_write_packet(pkt, yield_context);
 	}
 
+	// 发送 av数据包
+    bool write_packet(proto::base::avPacket* pkt)
+	{
+		// TODO return _impl->write_packet(pkt);
+	}
+
 	template<class AV_IF_IMPL>
 	avif(boost::shared_ptr<AV_IF_IMPL> impl)
 	{

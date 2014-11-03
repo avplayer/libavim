@@ -62,9 +62,38 @@ class avkernel_impl : boost::noncopyable
 		*
 		* 接着寻找的加密用的公钥，如果本地的缓存没找到，就要首先发送一个 askpk 消息获取公钥
 		*
-		* 获取到公钥后，调用 RSA_public_encrypt 加密数据，构建 avPacket.
+		* 获取到公钥后，调用 RSA_public_encrypt 加密数据，再用
+		* RSA_private_encrypt 加密，构建出 avPacket.
 		* 然后再调用 interface->async_write_packet 将数据发送出去
 		*/
+
+		avif interface = selectrouter(target);
+
+
+		RSA * target_pubkey = find_RSA_pubkey(target);
+
+		if( ! target_pubkey )
+		{
+			// TODO 发送 askpk 消息获取共钥
+			// TODO 如果配置了公钥服务器，尝试去公钥服务器获取
+		}
+
+		// TODO 加密数据，构造 avPacket
+
+		proto::base::avPacket avpkt;
+
+
+		interface.write_packet(&avpkt);
+	}
+
+	RSA * find_RSA_pubkey(std::string address)
+	{
+
+	}
+
+	avif selectrouter(std::string address)
+	{
+
 	}
 
 
