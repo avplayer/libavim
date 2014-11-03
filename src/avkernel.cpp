@@ -79,16 +79,6 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		}
 	}
 
-	bool add_route(std::string targetAddress, std::string gateway, std::string ifname)
-	{
-		// TODO
-
-		/*
-		* 将目标地址添加到路由表  targetAddress 是正则表达式的
-		*/
-		boost::regex regex(targetAddress);
-	}
-
 	void async_sendto_op(std::string target, std::string data, avkernel::SendReadyHandler handler, boost::asio::yield_context yield_context)
 	{
 		boost::system::error_code ec;
@@ -103,7 +93,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		* 然后再调用 interface->async_write_packet 将数据发送出去
 		*/
 
-		avif interface = selectrouter(target);
+		avif interface = select_route(target);
 
 
 		RSA * target_pubkey = find_RSA_pubkey(target);
@@ -177,9 +167,20 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	{
 	}
 
-	//
-	avif selectrouter(std::string address)
+	// TODO
+	avif select_route(std::string address)
 	{
+	}
+
+	// TODO
+	bool add_route(std::string targetAddress, std::string gateway, std::string ifname)
+	{
+		// TODO
+
+		/*
+		* 将目标地址添加到路由表  targetAddress 是正则表达式的
+		*/
+		boost::regex regex(targetAddress);
 	}
 
 public:
