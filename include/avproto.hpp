@@ -16,6 +16,17 @@ enum av_route_op{
 	AVROUTE_DEL
 };
 
+// 从 private 可以里 dump 出 public key
+static inline RSA * RSA_DumpPublicKey(RSA * pkey)
+{
+	RSA * pubkey = RSA_new();
+
+	pubkey->e = BN_dup(pkey->e);
+	pubkey->n = BN_dup(pkey->n);
+
+	return pubkey;
+}
+
 class avkernel : boost::noncopyable
 {
 	boost::asio::io_service & io_service;
