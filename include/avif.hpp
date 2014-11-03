@@ -9,6 +9,7 @@
 #include "protocol/avim-base.pb.h"
 
 #include <openssl/rsa.h>
+#include <boost/regex.hpp>
 
 namespace detail {
 
@@ -107,10 +108,22 @@ private:
 	boost::shared_ptr<detail::avif_implement_interface> _impl;
 };
 
-// TODO 实现它！
 static inline proto::base::avAddress av_address_from_string(std::string av_address)
 {
-
+    boost::regex re("([^@]*)@([^/]*)(/.*)?");
+    boost::smatch m;
+    if(boost::regex_search(av_address, m, re))
+    {
+        proto::base::avAddress addr;
+        addr.set_username(m[1]);
+        addr.set_domain(m[2]);
+        if(m[3].matched)
+        {
+            addr.set_resource(m[3]);
+        }
+        return addr;
+    }
+    return proto::base::avAddress();
 }
 
 // TODO 实现它
