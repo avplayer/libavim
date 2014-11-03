@@ -14,6 +14,7 @@ namespace detail {
 
 	struct avif_implement_interface{
 		virtual std::string get_ifname() = 0 ;
+		virtual proto::base::avAddress * if_address() = 0;
 
 		virtual RSA * get_rsa_key() = 0;
 
@@ -31,6 +32,12 @@ namespace detail {
 		{
 			return _impl->get_ifname();
 		};
+
+		proto::base::avAddress * if_address()
+		{
+			return _impl->if_address();
+		}
+
 
 		RSA * get_rsa_key()
 		{
@@ -68,6 +75,11 @@ struct avif
 		return _impl->get_ifname();
 	};
 
+	proto::base::avAddress * if_address()
+	{
+		return _impl->if_address();
+	}
+
 	RSA * get_rsa_key()
 	{
 		return _impl->get_rsa_key();
@@ -95,46 +107,3 @@ private:
 	boost::shared_ptr<detail::avif_implement_interface> _impl;
 };
 
-
-// 这个是 TCP 协议的接口
-// TODO, 使用 type-erasure 重新设计
-// TODO 暂时使用继承模式
-struct avtcpif
-{
-	avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket> client_sock, std::string local_addr, std::string remote_addr);
-
-	std::string get_ifname()
-	{
-		return ifname;
-	}
-
-	RSA * get_rsa_key()
-	{
-		return _rsa;
-	}
-
-	// TODO 从 TCP 连接上读取一个 avPacket
-	proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context)
-	{
-
-	}
-
-	// TODO 从 TCP 连接上写入一个 avPacket
-    bool async_write_packet(proto::base::avPacket*, boost::asio::yield_context yield_context)
-	{
-
-	}
-
-	~avtcpif()
-	{
-		// remove_from_av();
-	}
-
-	// 分配一个 if 接口名字
-	static std::string allocate_ifname();
-
-private:
-	std::string ifname;
-	RSA * _rsa;
-	boost::shared_ptr<boost::asio::ip::tcp::socket> m_client_sock;
-};
