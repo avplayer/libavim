@@ -44,10 +44,7 @@ public: // 下面是实现 avif 接口
 	}
 
 	// TODO 从 TCP 连接上写入一个 avPacket
-    bool async_write_packet(proto::base::avPacket*, boost::asio::yield_context yield_context)
-	{
-
-	}
+    bool async_write_packet(proto::base::avPacket*, boost::asio::yield_context yield_context);
 
 	~avtcpif()
 	{

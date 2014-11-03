@@ -115,3 +115,22 @@ std::string avtcpif::remote_addr()
 	return m_remote_addr.username() + "@" + m_remote_addr.domain();
 }
 
+bool avtcpif::async_write_packet(proto::base::avPacket* avpkt, boost::asio::yield_context yield_context)
+{
+	boost::system::error_code ec;
+	proto::base::avTCPPacket pkt;
+
+	std::ostream outstream(&m_send_buf);
+
+	pkt.set_type(0);
+	pkt.set_allocated_avpacket(avpkt);
+	pkt.SerializeToOstream(&outstream);
+	pkt.release_avpacket();
+
+	boost::uint32_t l = htonl(m_send_buf.size());
+
+	boost::asio::async_write(*m_sock, boost::asio::buffer(&l, sizeof(l)), yield_context[ec]);
+
+	boost::asio::async_write(*m_sock, m_send_buf, boost::asio::transfer_all(), yield_context[ec]);
+	return ! ec;
+}
