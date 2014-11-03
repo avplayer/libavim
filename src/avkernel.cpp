@@ -76,15 +76,36 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			// TODO 如果配置了公钥服务器，尝试去公钥服务器获取
 		}
 
-		// TODO 加密数据，构造 avPacket
+		// TODO 构造 avPacket
 
 		proto::base::avPacket avpkt;
 
+		// 第一次加密
+		std::string first_pubencode;
+		first_pubencode.resize(RSA_size(target_pubkey) + data.length());
+		first_pubencode.resize(RSA_public_encrypt(data.length(), (uint8_t*) data.data(),(uint8_t*) &first_pubencode[0], target_pubkey, RSA_PKCS1_OAEP_PADDING));
+
+		// 第二次签名
+		std::string second_sign;
+		second_sign.resize(RSA_size(interface.get_rsa_key()) + data.length());
+		second_sign.resize(RSA_private_encrypt(second_sign.length(), (uint8_t*) second_sign.data(),(uint8_t*) &second_sign[0], interface.get_rsa_key(), RSA_PKCS1_OAEP_PADDING));
+
+		// 把加密后的数据写入avPacket
+		avpkt.set_payload(second_sign);
+
+		// 附上自己的 publickey
+		std::string pubkey;
+		pubkey.resize(BN_num_bytes(interface.get_rsa_key()->n));
+
+		BN_bn2bin(interface.get_rsa_key()->n,(uint8_t*) &pubkey[0]);
+
+		avpkt.set_publickey(pubkey);
+
+		// TODO 添加其他
 
 		interface.async_write_packet(&avpkt, yield_context[ec]);
 
 		// 做完成通知
-
 		handler(ec);
 	}
 
@@ -110,14 +131,14 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		return ec.value();
 	}
 
+	// 从本地数据找 RSA 公钥，找不到就返回 NULL , 让 agmp 协议其作用
 	RSA * find_RSA_pubkey(std::string address)
 	{
-
 	}
 
+	//
 	avif selectrouter(std::string address)
 	{
-
 	}
 
 public:
