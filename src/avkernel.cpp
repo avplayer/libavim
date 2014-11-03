@@ -18,6 +18,8 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 {
 	boost::asio::io_service & io_service;
 	std::map<std::string, avif> m_avifs;
+    typedef std::pair<boost::regex, std::string> RouteItem;
+    std::vector<RouteItem> m_routes;
 
 	// 移除接口的时候调用
 	void remove_interface(std::string avifname)
@@ -123,7 +125,6 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			return ;
 		}
 
-
 		RSA * target_pubkey = find_RSA_pubkey(target);
 
 		if( ! target_pubkey )
@@ -198,17 +199,28 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	// TODO
 	avif * select_route(std::string address)
 	{
+        if(m_avifs.empty())
+        {
+            return nullptr;
+        }
+        for(const auto& route : m_routes)
+        {
+            if(boost::regex_match(address, route.first))
+            {
+                return &m_avifs.at(route.second);
+            }
+        }
+        return &m_avifs.begin()->second;
 	}
 
 	// TODO
 	bool add_route(std::string targetAddress, std::string gateway, std::string ifname)
 	{
-		// TODO
-
 		/*
 		* 将目标地址添加到路由表  targetAddress 是正则表达式的
 		*/
-		boost::regex regex(targetAddress);
+        assert(m_avifs.count(ifname) > 0);
+        m_routes.emplace_back(boost::regex(targetAddress), ifname);
 	}
 
 public:
