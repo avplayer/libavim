@@ -17,6 +17,12 @@ namespace detail
 class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this<avkernel_impl>
 {
 	boost::asio::io_service & io_service;
+	std::map<std::string, avif> m_avifs;
+
+	bool remove_interface(std::string avifname)
+	{
+
+	}
 
 	// 优先查看 avinterface 然后再看其他接口的
 	bool is_to_me(const proto::base::avAddress & addr, avif * avinterface)
@@ -211,7 +217,7 @@ avkernel::avkernel(boost::asio::io_service & _io_service)
 
 bool avkernel::add_interface(avif avinterface)
 {
-	m_avifs.insert(std::make_pair(avinterface.get_ifname(), avinterface));
+	_impl->m_avifs.insert(std::make_pair(avinterface.get_ifname(), avinterface));
 	boost::asio::spawn(io_service, boost::bind(&detail::avkernel_impl::interface_runner, _impl, avinterface, _1));
 	return true;
 }
