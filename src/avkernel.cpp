@@ -88,7 +88,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		// 第二次签名
 		std::string second_sign;
 		second_sign.resize(RSA_size(interface.get_rsa_key()) + data.length());
-		second_sign.resize(RSA_private_encrypt(second_sign.length(), (uint8_t*) second_sign.data(),(uint8_t*) &second_sign[0], interface.get_rsa_key(), RSA_PKCS1_OAEP_PADDING));
+		second_sign.resize(RSA_private_encrypt(first_pubencode.length(), (uint8_t*) first_pubencode.data(),(uint8_t*) &second_sign[0], interface.get_rsa_key(), RSA_PKCS1_OAEP_PADDING));
 
 		// 把加密后的数据写入avPacket
 		avpkt.set_payload(second_sign);
