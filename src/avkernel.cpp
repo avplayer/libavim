@@ -2,6 +2,7 @@
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 #include <boost/asio.hpp>
+#include <boost/regex.hpp>
 
 #include <avif.hpp>
 #include <avproto.hpp>
@@ -42,6 +43,31 @@ class avkernel_impl : boost::noncopyable
 
 	}
 
+	bool add_route(std::string targetAddress, std::string gateway, std::string ifname)
+	{
+		// TODO
+
+		/*
+		* 将目标地址添加到路由表  targetAddress 是正则表达式的
+		*/
+		boost::regex regex(targetAddress);
+	}
+
+	int sendto(std::string target, std::string data)
+	{
+		// TODO
+		/*
+		*
+		* 我来说一下算法, 首先根据路由表选定需要的 interface
+		*
+		* 接着寻找的加密用的公钥，如果本地的缓存没找到，就要首先发送一个 askpk 消息获取公钥
+		*
+		* 获取到公钥后，调用 RSA_public_encrypt 加密数据，构建 avPacket.
+		* 然后再调用 interface->async_write_packet 将数据发送出去
+		*/
+	}
+
+
 	friend avkernel;
 };
 
@@ -61,23 +87,10 @@ bool avkernel::add_interface(avif avinterface)
 
 bool avkernel::add_route(std::string targetAddress, std::string gateway, std::string ifname)
 {
-	// TODO
-
-	/*
-	 * 将目标地址添加到路由表
-	 */
+	return _impl->add_route(targetAddress, gateway, ifname);
 }
 
 int avkernel::sendto(std::string target, std::string data)
 {
-	// TODO
-	/*
-	 *
-	 * 我来说一下算法, 首先根据路由表选定需要的 interface
-	 *
-	 * 接着寻找的加密用的公钥，如果本地的缓存没找到，就要首先发送一个 askpk 消息获取公钥
-	 *
-	 * 获取到公钥后，调用 RSA_public_encrypt 加密数据，构建 avPacket.
-	 * 然后再调用 interface->async_write_packet 将数据发送出去
-	 */
+	return _impl->sendto(target, data);
 }
