@@ -31,6 +31,9 @@ class avkernel : boost::noncopyable
 {
 	boost::asio::io_service & io_service;
 	boost::shared_ptr<detail::avkernel_impl> _impl;
+
+	// ifname -> avif 的映射关系
+	std::map<std::string, avif> m_avifs;
 public:
 
 	typedef boost::function<void(boost::system::error_code)> SendReadyHandler;

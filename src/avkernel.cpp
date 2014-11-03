@@ -211,6 +211,7 @@ avkernel::avkernel(boost::asio::io_service & _io_service)
 
 bool avkernel::add_interface(avif avinterface)
 {
+	m_avifs.insert(std::make_pair(avinterface.get_ifname(), avinterface));
 	boost::asio::spawn(io_service, boost::bind(&detail::avkernel_impl::interface_runner, _impl, avinterface, _1));
 	return true;
 }
