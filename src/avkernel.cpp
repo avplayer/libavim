@@ -100,6 +100,9 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		BN_bn2bin(interface.get_rsa_key()->n,(uint8_t*) &pubkey[0]);
 
 		avpkt.set_publickey(pubkey);
+		avpkt.mutable_src()->CopyFrom( av_address_from_string(target) );
+		avpkt.mutable_src()->CopyFrom( *interface.if_address() );
+		avpkt.set_upperlayerpotocol("avim");
 
 		// TODO 添加其他
 
