@@ -107,3 +107,8 @@ private:
 	boost::shared_ptr<detail::avif_implement_interface> _impl;
 };
 
+// TODO 实现它！
+static inline proto::base::avAddress av_address_from_string(std::string av_address)
+{
+
+}

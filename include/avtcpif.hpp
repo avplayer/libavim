@@ -43,10 +43,7 @@ public: // 下面是实现 avif 接口
 	// TODO 从 TCP 连接上写入一个 avPacket
     bool async_write_packet(proto::base::avPacket*, boost::asio::yield_context yield_context);
 
-	~avtcpif()
-	{
-		// remove_from_av();
-	}
+	~avtcpif();
 
 	// 分配一个 if 接口名字
 	static std::string allocate_ifname();
@@ -54,8 +51,8 @@ public: // 下面是实现 avif 接口
 private:
 	std::string ifname;
 	RSA * _rsa;
-	proto::base::avAddress  m_local_addr, m_remote_addr;
-//	std::string m_local_addr_str, m_remote_addr_str;
+	X509 * _x509;
+	proto::base::avAddress m_local_addr, m_remote_addr;
 	boost::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
 
 	boost::asio::streambuf m_recv_buf, m_send_buf;
