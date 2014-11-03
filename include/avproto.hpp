@@ -2,7 +2,13 @@
 #pragma once
 
 #include <string>
-#include <avif.hpp>
+#include <boost/scoped_ptr.hpp>
+
+#include "avif.hpp"
+
+namespace detail {
+class avkernel_impl;
+}
 
 enum av_route_op{
 	AVROUTE_ADD,
@@ -10,10 +16,27 @@ enum av_route_op{
 	AVROUTE_DEL
 };
 
+class avkernel : boost::noncopyable
+{
+	boost::asio::io_service & io_service;
+	boost::shared_ptr<detail::avkernel_impl> _impl;
+public:
+	avkernel(boost::asio::io_service &);
+
+	bool add_interface(avif interface);
+
+	// 添加一项路由
+	bool add_route(std::string targetAddress, std::string gateway, std::string ifname);
+
+	int sendto(std::string target, std::string data);
+};
+
+
 /*
  * 启动 av 协议核心，一旦调用，那么 av 核心就启动起来了，等待 av 协议的处理
+ *
  */
-void av_start(boost::asio::io_service *);
+extern "C" void av_start();
 
 // 添加 avif 接口，用于 av_route 操作
 avif * av_if_handover(avif avinterface);

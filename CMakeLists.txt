@@ -1,2 +1,2 @@
 
-add_library( avprotocol STATIC src/avcore.cpp src/avtcpif.cpp)
+add_library( avprotocol STATIC src/avkernel.cpp src/avtcpif.cpp src/avcore.cpp)
