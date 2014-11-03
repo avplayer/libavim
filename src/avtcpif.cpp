@@ -1,4 +1,6 @@
 
+#include <boost/shared_ptr.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 #include <boost/asio.hpp>
@@ -14,7 +16,7 @@ std::string avtcpif::allocate_ifname()
 	return boost::str( boost::format("avif_tcp%1") % ifcounts ++ );
 }
 
-avtcpif::avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket> _sock, std::string local_addr, RSA * _key)
+avtcpif::avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket> _sock, std::string local_addr, RSA * _key, X509 *)
 {
 	m_sock = _sock;
 	ifname = allocate_ifname();
@@ -23,12 +25,21 @@ avtcpif::avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket> _sock, std::str
 // TODO
 bool avtcpif::async_master_handshake(bool as_master, boost::asio::yield_context yield_context)
 {
+	boost::uint32_t l;
 	boost::system::error_code ec;
 	// 接收用户的 av地址
-	int len = boost::asio::async_read_until(*m_sock, m_recv_buf, "\r\n", yield_context[ec]);
+	int len = boost::asio::async_read(*m_sock, boost::asio::buffer(&l, sizeof(l)), yield_context[ec]);
 
-	if( ec)
+	if( len != sizeof(l))
 		return false;
+
+	len = boost::asio::async_read(*m_sock, m_recv_buf, boost::asio::transfer_exactly(ntohl(l)), yield_context[ec]);
+
+	std::istream inputstream(&m_recv_buf);
+
+	boost::scoped_ptr<proto::base::avTCPPacket> pkt(new proto::base::avTCPPacket);
+
+	pkt->ParseFromIstream(&inputstream);
 
 	std::string useraddr; useraddr.resize(len);
 

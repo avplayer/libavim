@@ -10,7 +10,7 @@
 struct avtcpif : boost::noncopyable
 {
 public:
-	avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket>, std::string local_addr, RSA * _key);
+	avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket>, std::string local_addr, RSA * _key, X509 *);
 
 	// TCP接口，有 master/slave 模式之分 服务器使用 master 模式，客户端则是 slave 模式
 	// 区别只是登录时候的握手不一样，所以就在 handshake 这里直接设定就可以了
