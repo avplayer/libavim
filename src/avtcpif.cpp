@@ -41,34 +41,77 @@ bool avtcpif::async_master_handshake(bool as_master, boost::asio::yield_context 
 
 	pkt->ParseFromIstream(&inputstream);
 
-	std::string useraddr; useraddr.resize(len);
+	if(pkt->type() != 1)
+		return false;
 
-	m_recv_buf.sgetn(&useraddr[0], len);
+	m_remote_addr = pkt->endpoint_address();
+
+	// TODO 检查证书
+
+	* pkt->mutable_endpoint_address() = m_local_addr;
+
+	pkt->clear_endpoint_cert();
+
+	std::ostream outstream(&m_send_buf);
+
+	pkt->SerializeToOstream(&outstream);
 
 	// 返回服务器地址
-	boost::asio::async_write(*m_sock, boost::asio::buffer(m_local_addr_str), yield_context[ec]);
-	if( ec )
-		return false;
+
+	l = htonl(m_send_buf.size());
+
+	boost::asio::async_write(*m_sock, boost::asio::buffer(&l, sizeof(l)), yield_context[ec]);
+
+	boost::asio::async_write(*m_sock, m_send_buf, boost::asio::transfer_all(), yield_context[ec]);
+
+	return !ec;
 }
 
 // TODO
 bool avtcpif::slave_handshake(bool as_master)
 {
-	boost::asio::write(*m_sock, boost::asio::buffer(m_local_addr_str));
+	boost::uint32_t l;
+	std::ostream outstream(&m_send_buf);
+	boost::system::error_code ec;
 
-	std::string serveraddr;
+	boost::scoped_ptr<proto::base::avTCPPacket> pkt(new proto::base::avTCPPacket);
+	pkt->set_type(1);
 
-	boost::asio::streambuf buf;
+	* pkt->mutable_endpoint_address() = m_local_addr;
+	pkt->SerializeToOstream(&outstream);
 
-	int len = boost::asio::read_until(*m_sock, buf, "\r\n");
-	serveraddr.resize(len);
+	// 返回服务器地址
 
-	buf.sgetn(&serveraddr[0], len);
+	l = htonl(m_send_buf.size());
+
+	boost::asio::write(*m_sock, boost::asio::buffer(&l, sizeof(l)));
+
+	boost::asio::write(*m_sock, m_send_buf, boost::asio::transfer_all());
+
+	int len = boost::asio::read(*m_sock, boost::asio::buffer(&l, sizeof(l)));
+
+	if( len != sizeof(l))
+		return false;
+
+	len = boost::asio::read(*m_sock, m_recv_buf, boost::asio::transfer_exactly(ntohl(l)));
+
+	std::istream inputstream(&m_recv_buf);
+
+	pkt->Clear();
+	pkt->ParseFromIstream(&inputstream);
+
+	if(pkt->type() != 1)
+		return false;
+
+	m_remote_addr = pkt->endpoint_address();
+
+	// TODO 检查证书
+
+	return true;
 }
-
 
 std::string avtcpif::remote_addr()
 {
-	return m_remote_addr_str;
+	return m_remote_addr.username() + "@" + m_remote_addr.domain();
 }
 

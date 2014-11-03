@@ -29,7 +29,7 @@ public: // 下面是实现 avif 接口
 
 	proto::base::avAddress * if_address()
 	{
-		return m_local_addr;
+		return &m_local_addr;
 	}
 
 	RSA * get_rsa_key()
@@ -60,10 +60,10 @@ public: // 下面是实现 avif 接口
 private:
 	std::string ifname;
 	RSA * _rsa;
-	proto::base::avAddress * m_local_addr, * m_remote_addr;
-	std::string m_local_addr_str, m_remote_addr_str;
+	proto::base::avAddress  m_local_addr, m_remote_addr;
+//	std::string m_local_addr_str, m_remote_addr_str;
 	boost::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
 
-	boost::asio::streambuf m_recv_buf;
+	boost::asio::streambuf m_recv_buf, m_send_buf;
 };
 
