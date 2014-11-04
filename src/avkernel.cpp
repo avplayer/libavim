@@ -39,13 +39,13 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 	std::map<std::string, AVdbitem> trusted_pubkey;
 
-
 	// 移除接口的时候调用
 	void remove_interface(std::string avifname)
 	{
-		// TODO 移除路由表上使用该接口的所有项目
-
+		std::cerr << "interface " << avifname << " removed " << std::endl;
 		// TODO 移除 m_avifs 里相关条目
+		m_avifs.erase(avifname);
+		// TODO 移除路由表上使用该接口的所有项目
 	}
 
 	bool is_to_me(const proto::base::avAddress & addr)
@@ -64,8 +64,11 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 	void process_recived_packet(boost::shared_ptr<proto::base::avPacket> avPacket, avif avinterface, boost::asio::yield_context yield_context)
 	{
+
+		RSA * stored_key = find_RSA_pubkey(av_address_to_string(avPacket->src()));
+
 		// TODO 执行客户端校验
-		if(avPacket->has_publickey())
+		if(avPacket->has_publickey() && stored_key)
 		{
 			// 有 pubkey ， 比较内部数据库里的记录
 			// 如果和内部数据库的记录不一致
@@ -74,11 +77,13 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			// 干这种事情的话，就需要开另外一个协程慢慢干了，呵呵
 			// 因此加到 TODO 列表
 
-			RSA * stored_key = find_RSA_pubkey(av_address_to_string(avPacket->src()));
-			if( !stored_key )
-			{
-				// TODO, 执行 证书请求，并在请求通过后，接受该 key 并同时接受该数据包，
-			}
+		}
+		else if(!stored_key && ! avPacket->has_publickey())
+		{
+			// TODO, 执行 证书请求，并在请求通过后，验证数据包接受该
+		}else
+		{
+			 // TODO 执行 证书请求，并在请求通过后，验证数据包接受该
 		}
 
 		// 查看据地地址，如果是自己，就交给上层
@@ -86,6 +91,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		if( is_to_me(avPacket->dest()) )
 		{
 			// TODO 挂入本地接收列队，等待上层读取
+			return;
 		}
 
 		// TODO 查找路由表
@@ -107,10 +113,13 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		for(; ! (* avinterface.quitting) ;)
 		{
 			std::pair<proto::base::avPacket*, boost::function<void(boost::system::error_code)>>
-				popvalue = avinterface._write_queue->async_pop(yield_context);
+				popvalue = avinterface._write_queue->async_pop(yield_context[ec]);
+			if(ec)
+				break;
 			avinterface.async_write_packet(popvalue.first, yield_context[ec]);
 			popvalue.second(ec);
 		}
+		std::cerr << "interface_writer coroutine exited" << std::endl;
 	}
 
 	template<class RealHandler>
@@ -154,12 +163,13 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			{
 				// boost::asio::spawn(io_service, boost::bind(&avkernel_impl::process_recived_packet, shared_from_this(), avpkt, avinterface, _1));
 				process_recived_packet(avpkt, avinterface, yield_context);
+			}else
+			{
+				* avinterface.quitting = true;
 			}
-
-			// 否则出错，删除该接口！
-
-			// TODO
 		}
+		avinterface._write_queue->cancele();
+		remove_interface(avinterface.get_ifname());
 	}
 
 	void async_sendto_op(std::string target, std::string data, avkernel::SendReadyHandler handler, boost::asio::yield_context yield_context)
@@ -303,6 +313,9 @@ avkernel::avkernel(boost::asio::io_service & _io_service)
 
 bool avkernel::add_interface(avif avinterface)
 {
+	std::cout << "new interface " << avinterface.get_ifname() << " created. remotepoint : "
+		<< av_address_to_string(*avinterface.remote_address()) << std::endl;
+
 	_impl->m_avifs.insert(std::make_pair(avinterface.get_ifname(), avinterface));
 	boost::asio::spawn(io_service, boost::bind(&detail::avkernel_impl::interface_runner, _impl, avinterface, _1));
 	boost::asio::spawn(io_service, boost::bind(&detail::avkernel_impl::interface_writer, _impl, avinterface, _1));

@@ -32,7 +32,9 @@ namespace detail {
 		virtual boost::asio::io_service & get_io_service() const = 0;
 
 		virtual std::string get_ifname() const = 0 ;
+
 		virtual const proto::base::avAddress * if_address() const = 0;
+		virtual const proto::base::avAddress * remote_address() const = 0 ;
 
 		virtual RSA * get_rsa_key() = 0;
 
@@ -61,6 +63,10 @@ namespace detail {
 			return _impl->if_address();
 		}
 
+		const proto::base::avAddress * remote_address() const
+		{
+			return _impl->remote_address();
+		}
 
 		RSA * get_rsa_key()
 		{
@@ -108,6 +114,12 @@ struct avif
 		return _impl->if_address();
 	}
 
+	const proto::base::avAddress * remote_address() const
+	{
+		return _impl->remote_address();
+	}
+
+
 	RSA * get_rsa_key()
 	{
 		return _impl->get_rsa_key();
@@ -130,12 +142,14 @@ struct avif
 	{
 		quitting = other.quitting;
 		_impl = other._impl;
+		_write_queue = other._write_queue;
 	}
 
 	avif(avif &&other)
 	{
 		quitting = other.quitting;
 		_impl = other._impl;
+		_write_queue = other._write_queue;
 	}
 
 	boost::shared_ptr< boost::atomic<bool> > quitting;

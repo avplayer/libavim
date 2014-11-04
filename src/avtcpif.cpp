@@ -17,7 +17,7 @@ static  boost::atomic<uint64_t> ifcounts;// = 0ul;
 
 std::string avtcpif::allocate_ifname()
 {
-	return boost::str( boost::format("avif_tcp%1") % ifcounts ++ );
+	return boost::str( boost::format("avif_tcp%d") % ifcounts ++ );
 }
 
 avtcpif::~avtcpif()
@@ -54,6 +54,11 @@ RSA* avtcpif::get_rsa_key()
 const proto::base::avAddress* avtcpif::if_address() const
 {
     return m_local_addr.get();
+}
+
+const proto::base::avAddress * avtcpif::remote_address() const
+{
+	return m_remote_addr.get();
 }
 
 bool avtcpif::async_master_handshake(bool as_master, boost::asio::yield_context yield_context)
