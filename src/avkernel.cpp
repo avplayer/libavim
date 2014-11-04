@@ -6,6 +6,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/regex.hpp>
+#include <boost/range/algorithm.hpp>
 
 #include <openssl/err.h>
 
@@ -21,11 +22,20 @@ namespace detail
 typedef boost::shared_ptr<RSA> autoRSAptr;
 
 
+struct RouteItem
+{
+	boost::regex pattern;
+	std::string gateway;
+	std::string ifname;
+	int metric;
+};
+
+bool operator<(const RouteItem& lhs, const RouteItem& rhs) { return lhs.metric > rhs.metric; }
+
 class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this<avkernel_impl>
 {
 	boost::asio::io_service & io_service;
 	std::map<std::string, avif> m_avifs;
-    typedef std::pair<boost::regex, std::string> RouteItem;
     std::vector<RouteItem> m_routes;
 
 	struct AVPubKey : boost::noncopyable {
@@ -305,9 +315,9 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		std::cerr << "interface " << avifname << " removed " << std::endl;
 		// TODO 移除路由表上使用该接口的所有项目
 
-		std::vector<RouteItem>::iterator it = m_routes.begin();
+		auto it = m_routes.begin();
 
-		while( (it = std::find_if(it, m_routes.end(), [avifname](const RouteItem & item){return item.second == avifname;}) ) != m_routes.end())
+		while( (it = std::find_if(it, m_routes.end(), [avifname](const RouteItem & item){return item.ifname == avifname;}) ) != m_routes.end())
 		{
 			m_routes.erase(it++);
 		}
@@ -317,18 +327,14 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	// TODO
 	avif * select_route(std::string address)
 	{
-        if(m_avifs.empty())
-        {
-            return nullptr;
-        }
-        for(const auto& route : m_routes)
-        {
-            if(boost::regex_match(address, route.first))
-            {
-                return &m_avifs.at(route.second);
-            }
-        }
-        return &m_avifs.begin()->second;
+		for (auto iter = m_routes.begin(); iter != m_routes.end(); ++iter)
+		{
+			if(boost::regex_match(address, iter->pattern))
+			{
+				return &m_avifs.at(iter->ifname);
+			}
+		}
+		return nullptr;
 	}
 
 	// TODO
@@ -338,7 +344,8 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		* 将目标地址添加到路由表  targetAddress 是正则表达式的
 		*/
         assert(m_avifs.count(ifname) > 0);
-        m_routes.emplace_back(boost::regex(targetAddress), ifname);
+        m_routes.push_back(RouteItem{boost::regex(targetAddress), gateway, ifname, 0});
+        boost::sort(m_routes);
 	}
 
 public:
