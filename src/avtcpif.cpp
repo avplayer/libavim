@@ -9,8 +9,9 @@
 #include <boost/asio.hpp>
 #include <boost/atomic.hpp>
 
-#include <avtcpif.hpp>
-#include <avproto.hpp>
+#include "avtcpif.hpp"
+#include "avproto.hpp"
+#include "protocol/avim-base.pb.h"
 
 static  boost::atomic<uint64_t> ifcounts;// = 0ul;
 
@@ -32,7 +33,12 @@ avtcpif::avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket> _sock, std::str
 	m_sock = _sock;
 	ifname = allocate_ifname();
 
-	m_local_addr = av_address_from_string(local_addr);
+	m_local_addr.reset( new proto::base::avAddress(av_address_from_string(local_addr)));
+}
+
+boost::asio::io_service& avtcpif::get_io_service() const
+{
+	return m_sock->get_io_service();
 }
 
 std::string avtcpif::get_ifname() const
@@ -47,7 +53,7 @@ RSA* avtcpif::get_rsa_key()
 
 const proto::base::avAddress* avtcpif::if_address() const
 {
-    return &m_local_addr;
+    return m_local_addr.get();
 }
 
 bool avtcpif::async_master_handshake(bool as_master, boost::asio::yield_context yield_context)
@@ -71,11 +77,11 @@ bool avtcpif::async_master_handshake(bool as_master, boost::asio::yield_context 
 	if(pkt->type() != 1)
 		return false;
 
-	m_remote_addr = pkt->endpoint_address();
+	m_remote_addr.reset(new proto::base::avAddress(pkt->endpoint_address()));
 
 	// TODO 检查证书
 
-	* pkt->mutable_endpoint_address() = m_local_addr;
+	* pkt->mutable_endpoint_address() = * m_local_addr;
 
 	pkt->clear_endpoint_cert();
 
@@ -103,7 +109,7 @@ bool avtcpif::slave_handshake(bool as_master)
 	boost::scoped_ptr<proto::base::avTCPPacket> pkt(new proto::base::avTCPPacket);
 	pkt->set_type(1);
 
-	* pkt->mutable_endpoint_address() = m_local_addr;
+	* pkt->mutable_endpoint_address() = * m_local_addr;
 	pkt->SerializeToOstream(&outstream);
 
 	// 返回服务器地址
@@ -129,7 +135,7 @@ bool avtcpif::slave_handshake(bool as_master)
 	if(pkt->type() != 1)
 		return false;
 
-	m_remote_addr = pkt->endpoint_address();
+	m_remote_addr.reset( new proto::base::avAddress(pkt->endpoint_address()));
 
 	// TODO 检查证书
 
@@ -138,7 +144,7 @@ bool avtcpif::slave_handshake(bool as_master)
 
 std::string avtcpif::remote_addr()
 {
-	return m_remote_addr.username() + "@" + m_remote_addr.domain();
+	return m_remote_addr->username() + "@" + m_remote_addr->domain();
 }
 
 bool avtcpif::async_write_packet(proto::base::avPacket* avpkt, boost::asio::yield_context yield_context)

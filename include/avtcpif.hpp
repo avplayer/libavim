@@ -23,6 +23,7 @@ public:
 	std::string remote_addr();
 
 public: // 下面是实现 avif 接口
+	boost::asio::io_service & get_io_service() const;
 	std::string get_ifname() const;
 	const proto::base::avAddress * if_address() const;
 	RSA * get_rsa_key();
@@ -36,7 +37,7 @@ private:
 	std::string ifname;
 	RSA * _rsa;
 	X509 * _x509;
-	proto::base::avAddress m_local_addr, m_remote_addr;
+	boost::scoped_ptr<proto::base::avAddress> m_local_addr, m_remote_addr;
 	boost::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
 
 	boost::asio::streambuf m_recv_buf, m_send_buf;

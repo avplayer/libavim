@@ -7,8 +7,10 @@
 #include <boost/make_shared.hpp>
 #include <boost/regex.hpp>
 
-#include <avif.hpp>
-#include <avproto.hpp>
+#include "avif.hpp"
+#include "avproto.hpp"
+#include "async_coro_queue.hpp"
+#include "protocol/avim-base.pb.h"
 
 class avkernel;
 namespace detail
@@ -77,6 +79,43 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 	}
 
+	void interface_writer(avif avinterface, boost::asio::yield_context yield_context)
+	{
+		boost::system::error_code ec;
+
+		for(; ! (* avinterface.quitting) ;)
+		{
+			std::pair<proto::base::avPacket*, boost::function<void(boost::system::error_code)>>
+				popvalue = avinterface._write_queue->async_pop(yield_context);
+			avinterface.async_write_packet(popvalue.first, yield_context[ec]);
+			popvalue.second(ec);
+		}
+	}
+
+	template<class RealHandler>
+	void async_interface_write_packet_impl(avif * avinterface, proto::base::avPacket* avPacket, RealHandler handler)
+	{
+		std::pair<proto::base::avPacket*, boost::function<void(boost::system::error_code)> > value(
+			avPacket,
+			handler
+		);
+
+		avinterface->_write_queue->push(value);
+	}
+
+	void async_interface_write_packet(avif * avinterface, proto::base::avPacket* avPacket, boost::asio::yield_context handler)
+	{
+		using namespace boost::asio;
+
+		boost::asio::detail::async_result_init<
+			boost::asio::yield_context, void(boost::system::error_code)> init(
+			BOOST_ASIO_MOVE_CAST(boost::asio::yield_context)(handler));
+
+		async_interface_write_packet_impl<
+			BOOST_ASIO_HANDLER_TYPE(boost::asio::yield_context, void(boost::system::error_code))
+		>(avinterface, avPacket, init.handler);
+		return init.result.get();
+	}
 	// FIXME
 	// TODO, 读取这个接口上的数据，然后转发数据！
 	// 对每个 interface 执行的线程， 接收数据
@@ -84,7 +123,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	{
 		boost::system::error_code ec;
 
-		for(;;)
+		for(; ! (* avinterface.quitting) ;)
 		{
 			// 读取一个数据包
 			boost::shared_ptr<proto::base::avPacket> avpkt;
@@ -163,7 +202,8 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 		// TODO 添加其他
 
-		interface->async_write_packet(&avpkt, yield_context[ec]);
+		// 添入发送列队
+		async_interface_write_packet(interface, &avpkt, yield_context[ec]);
 
 		// 做完成通知
 		handler(ec);
@@ -244,6 +284,7 @@ bool avkernel::add_interface(avif avinterface)
 {
 	_impl->m_avifs.insert(std::make_pair(avinterface.get_ifname(), avinterface));
 	boost::asio::spawn(io_service, boost::bind(&detail::avkernel_impl::interface_runner, _impl, avinterface, _1));
+	boost::asio::spawn(io_service, boost::bind(&detail::avkernel_impl::interface_writer, _impl, avinterface, _1));
 	return true;
 }
 
