@@ -42,7 +42,7 @@ public:
 	bool add_interface(avif interface);
 
 	// 添加一项路由
-	bool add_route(std::string targetAddress, std::string gateway, std::string ifname);
+	bool add_route(std::string targetAddress, std::string gateway, std::string ifname, int metric);
 
 	int sendto(std::string target, std::string data);
 };

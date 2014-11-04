@@ -329,9 +329,9 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 		auto it = m_routes.begin();
 
-		while( (it = std::find_if(it, m_routes.end(), [avifname](const RouteItem & item){return item.ifname == avifname;}) ) != m_routes.end())
+		while( (it = std::find_if(m_routes.begin(), m_routes.end(), [avifname](const RouteItem & item){return item.ifname == avifname;}) ) != m_routes.end())
 		{
-			m_routes.erase(it++);
+			m_routes.erase(it);
 		}
 		m_avifs.erase(avifname);
 	}
@@ -350,13 +350,13 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	}
 
 	// TODO
-	bool add_route(std::string targetAddress, std::string gateway, std::string ifname)
+	bool add_route(std::string targetAddress, std::string gateway, std::string ifname, int metric)
 	{
 		/*
 		* 将目标地址添加到路由表  targetAddress 是正则表达式的
 		*/
         assert(m_avifs.count(ifname) > 0);
-        m_routes.push_back(RouteItem{boost::regex(targetAddress), gateway, ifname, 0});
+        m_routes.push_back(RouteItem{boost::regex(targetAddress), gateway, ifname, metric});
         boost::sort(m_routes);
 	}
 
@@ -388,9 +388,9 @@ bool avkernel::add_interface(avif avinterface)
 	return true;
 }
 
-bool avkernel::add_route(std::string targetAddress, std::string gateway, std::string ifname)
+bool avkernel::add_route(std::string targetAddress, std::string gateway, std::string ifname, int metric)
 {
-	return _impl->add_route(targetAddress, gateway, ifname);
+	return _impl->add_route(targetAddress, gateway, ifname, metric);
 }
 
 int avkernel::sendto(std::string target, std::string data)
