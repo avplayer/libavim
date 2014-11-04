@@ -62,6 +62,16 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 	std::map<std::string, AVdbitem> trusted_pubkey;
 
+	// 存储接收到的数据包
+	boost::async_coro_queue<
+		std::queue<
+			std::pair<std::string, std::string>
+		>
+	> m_recv_buffer;
+
+	// 缓存接收到的包以便后续处理的那种
+	std::list<avif::auto_avPacketPtr> m_recv_cache;
+
 	bool is_to_me(const proto::base::avAddress & addr)
 	{
 		// 遍历 interface 做比较
@@ -105,7 +115,12 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		if( is_to_me(avPacket->dest()) )
 		{
 			std::cerr << "one pkt from " <<  av_address_to_string(avPacket->src()) << " sended to me" << std::endl;
-			// TODO 挂入本地接收列队，等待上层读取
+			std::string add,data;
+
+			//  TODO 解密数据
+
+			// 挂入本地接收列队，等待上层读取
+			m_recv_buffer.push(std::make_pair(add, data));
 			return;
 		}
 
@@ -141,6 +156,28 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 	}
 
+	void async_recvfrom_op(std::string & target, std::string & data, avkernel::ReadyHandler handler, boost::asio::yield_context yield_context)
+	{
+		boost::system::error_code ec;
+
+		auto _data_pair = m_recv_buffer.async_pop(yield_context[ec]);
+		if(ec)
+		{
+			return handler(ec);
+		}
+
+		target = std::move(_data_pair.first);
+		data = std::move(_data_pair.second);
+
+		handler(ec);
+	}
+
+	void async_recvfrom(std::string & target, std::string & data, avkernel::ReadyHandler handler)
+	{
+		boost::asio::spawn(io_service, boost::bind(&avkernel_impl::async_recvfrom_op, shared_from_this(), boost::ref(target), boost::ref(data), handler, _1 ));
+	}
+
+	// 内部的一个协程循环，用来执行串行发送，保证数据包次序
 	void interface_writer(avif avinterface, boost::asio::yield_context yield_context)
 	{
 		boost::system::error_code ec;
@@ -160,17 +197,6 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	}
 
 	template<class RealHandler>
-	void async_interface_write_packet_impl(avif * avinterface, avif::auto_avPacketPtr avPacket, RealHandler handler)
-	{
-		std::pair<avif::auto_avPacketPtr, boost::function<void(boost::system::error_code)> > value(
-			avPacket,
-			handler
-		);
-
-		avinterface->_write_queue->push(value);
-	}
-
-	template<class RealHandler>
 	inline BOOST_ASIO_INITFN_RESULT_TYPE(RealHandler,
 		void(boost::system::error_code))
 	async_interface_write_packet(avif * avinterface, avif::auto_avPacketPtr avPacket, BOOST_ASIO_MOVE_ARG(RealHandler) handler)
@@ -181,14 +207,17 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			RealHandler, void(boost::system::error_code)> init(
 			BOOST_ASIO_MOVE_CAST(RealHandler)(handler));
 
-		async_interface_write_packet_impl<
-			BOOST_ASIO_HANDLER_TYPE(RealHandler, void(boost::system::error_code))
-		>(avinterface, avPacket, init.handler);
+		std::pair<avif::auto_avPacketPtr, boost::function<void(boost::system::error_code)> > value(
+			avPacket,
+			init.handler
+		);
+
+		avinterface->_write_queue->push(value);
+
 		return init.result.get();
 	}
-	// FIXME
-	// TODO, 读取这个接口上的数据，然后转发数据！
-	// 对每个 interface 执行的线程， 接收数据
+
+	// 读取这个接口上的数据，然后转发数据！
 	void interface_runner(avif avinterface, boost::asio::yield_context yield_context)
 	{
 		boost::system::error_code ec;
@@ -211,7 +240,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		remove_interface(avinterface.get_ifname());
 	}
 
-	void async_sendto_op(std::string target, std::string data, avkernel::SendReadyHandler handler, boost::asio::yield_context yield_context)
+	void async_sendto_op(std::string target, std::string data, avkernel::ReadyHandler handler, boost::asio::yield_context yield_context)
 	{
 		boost::system::error_code ec;
 		/*
@@ -297,12 +326,12 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		handler(ec);
 	}
 
-	void async_sendto(std::string target, std::string data, avkernel::SendReadyHandler handler)
+	void async_sendto(const std::string & target, const std::string & data, avkernel::ReadyHandler handler)
 	{
 		boost::asio::spawn(io_service, boost::bind(&avkernel_impl::async_sendto_op, shared_from_this(), target, data, handler, _1 ));
 	}
 
-	int sendto(std::string target, std::string data)
+	int sendto(const std::string & target, const std::string & data)
 	{
 		boost::system::error_code ec;
 		boost::atomic_bool done;
@@ -375,6 +404,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 public:
 	avkernel_impl(boost::asio::io_service & _io_service)
 		: io_service(_io_service)
+		, m_recv_buffer(io_service)
 	{
 	}
 
@@ -405,7 +435,41 @@ bool avkernel::add_route(std::string targetAddress, std::string gateway, std::st
 	return _impl->add_route(targetAddress, gateway, ifname, metric);
 }
 
-int avkernel::sendto(std::string target, std::string data)
+int avkernel::sendto(const std::string & target, const std::string & data)
 {
 	return _impl->sendto(target, data);
+}
+
+void avkernel::async_sendto(const std::string & target, const std::string & data, ReadyHandler handler)
+{
+	_impl->async_sendto(target, data, handler);
+}
+
+void avkernel::async_sendto(const std::string & target, const std::string & data, boost::asio::yield_context yield_context)
+{
+	using namespace boost::asio;
+
+	boost::asio::detail::async_result_init<
+		boost::asio::yield_context, void(boost::system::error_code)> init((boost::asio::yield_context&&)yield_context);
+
+	async_sendto(target, data, init.handler);
+
+	return init.result.get();
+}
+
+void avkernel::async_recvfrom(std::string & target, std::string & data, ReadyHandler handler)
+{
+	_impl->async_recvfrom(target, data, handler);
+}
+
+void avkernel::async_recvfrom(std::string & target, std::string & data, boost::asio::yield_context yield_context)
+{
+	using namespace boost::asio;
+
+	boost::asio::detail::async_result_init<
+		boost::asio::yield_context, void(boost::system::error_code)> init((boost::asio::yield_context&&)yield_context);
+
+	async_recvfrom(target, data, init.handler);
+
+	return init.result.get();
 }
