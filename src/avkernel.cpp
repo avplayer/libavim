@@ -87,6 +87,16 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			return;
 		}
 
+		// 查看 ttl
+		if( avPacket->time_to_live() <= 1)
+		{
+			// 丢弃包
+			// TODO 向原地址返回一个 ttl 消尽的agmp消息
+			return ;
+		}
+
+		avPacket->set_time_to_live(avPacket->time_to_live() - 1);
+
 		// TODO 查找路由表
 		avif * interface = select_route(av_address_to_string(avPacket->dest()));
 
