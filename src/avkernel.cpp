@@ -14,6 +14,17 @@
 #include "async_coro_queue.hpp"
 #include "protocol/avim-base.pb.h"
 
+template<typename C, typename Pred>
+auto container_remove_all(C & c, Pred pred) -> decltype(std::begin(c))
+{
+	auto it = std::begin(c);
+	while( (it = std::find_if(it, std::end(c), pred) ) != std::end(c))
+	{
+		c.erase(it++);
+	}
+	return it;
+}
+
 class avkernel;
 namespace detail
 {
