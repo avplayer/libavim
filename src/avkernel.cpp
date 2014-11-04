@@ -340,7 +340,6 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		m_avifs.erase(avifname);
 	}
 
-	// TODO
 	avif * select_route(std::string address)
 	{
 		for (auto iter = m_routes.begin(); iter != m_routes.end(); ++iter)
@@ -353,7 +352,6 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		return nullptr;
 	}
 
-	// TODO
 	bool add_route(std::string targetAddress, std::string gateway, std::string ifname, int metric)
 	{
 		/*
