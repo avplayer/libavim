@@ -259,6 +259,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		avpkt.set_upperlayerpotocol("avim");
 
 		// TODO 添加其他
+		avpkt.set_time_to_live(64);
 
 		// 添入发送列队
 		avif::auto_avPacketPtr avpktptr;
