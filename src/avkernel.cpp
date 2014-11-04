@@ -16,12 +16,29 @@ class avkernel;
 namespace detail
 {
 
+typedef boost::shared_ptr<RSA> autoRSAptr;
+
+
 class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this<avkernel_impl>
 {
 	boost::asio::io_service & io_service;
 	std::map<std::string, avif> m_avifs;
     typedef std::pair<boost::regex, std::string> RouteItem;
     std::vector<RouteItem> m_routes;
+
+	struct AVPubKey : boost::noncopyable {
+		autoRSAptr rsa;
+		// valid_until this time
+		std::time_t valid_until;
+	};
+
+	struct AVdbitem{
+		std::string avaddr;
+		std::vector<AVPubKey> keys;
+	};
+
+	std::map<std::string, AVdbitem> trusted_pubkey;
+
 
 	// 移除接口的时候调用
 	void remove_interface(std::string avifname)
@@ -72,11 +89,15 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		}
 
 		// TODO 查找路由表
+		avif * interface = select_route(av_address_to_string(avPacket->dest()));
 
-		// TODO 转发过去
-
-		// TODO 找不到目的地址，就发回一个 目的地址不可达消息
-
+		if(!interface)
+		{
+			// TODO 返回 no route to host 消息
+			return;
+		}
+		// 转发过去
+		async_interface_write_packet(interface, avPacket.get(), yield_context);
 	}
 
 	void interface_writer(avif avinterface, boost::asio::yield_context yield_context)
