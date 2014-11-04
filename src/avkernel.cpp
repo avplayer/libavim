@@ -104,6 +104,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 		if( is_to_me(avPacket->dest()) )
 		{
+			std::cerr << "one pkt from " <<  av_address_to_string(avPacket->src()) << " sended to me" << std::endl;
 			// TODO 挂入本地接收列队，等待上层读取
 			return;
 		}
