@@ -41,7 +41,7 @@ struct RouteItem
 	int metric;
 };
 
-bool operator<(const RouteItem& lhs, const RouteItem& rhs) { return lhs.metric > rhs.metric; }
+bool operator<(const RouteItem& lhs, const RouteItem& rhs) { return lhs.metric < rhs.metric; }
 
 class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this<avkernel_impl>
 {
