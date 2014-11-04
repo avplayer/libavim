@@ -356,8 +356,16 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		* 将目标地址添加到路由表  targetAddress 是正则表达式的
 		*/
         assert(m_avifs.count(ifname) > 0);
-        m_routes.push_back(RouteItem{boost::regex(targetAddress), gateway, ifname, metric});
-        boost::sort(m_routes);
+        if(m_avifs.count(ifname) > 0)
+        {
+	        m_routes.push_back(RouteItem{boost::regex(targetAddress), gateway, ifname, metric});
+	        boost::sort(m_routes);
+	        return true;
+	    }
+	    else
+	    {
+		    return false;
+		}
 	}
 
 public:
