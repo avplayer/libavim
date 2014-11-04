@@ -127,7 +127,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		if(!interface)
 		{
 			// TODO 返回 no route to host 消息
-			std::cerr << " but no route to host, dropping packet!!" << interface->get_ifname() << std::endl;
+			std::cerr << "|| but no route to host, dropping packet!!" << std::endl;
 			return;
 		}
 
