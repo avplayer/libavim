@@ -41,18 +41,6 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 	std::map<std::string, AVdbitem> trusted_pubkey;
 
-	// 移除接口的时候调用
-	void remove_interface(std::string avifname)
-	{
-		std::cerr << "interface " << avifname << " removed " << std::endl;
-		// TODO 移除 m_avifs 里相关条目
-		m_avifs.erase(avifname);
-		// TODO 移除路由表上使用该接口的所有项目
-		std::remove_if(m_routes.begin(), m_routes.end(), [avifname](const RouteItem & item){
-			return item.second == avifname;
-		});
-	}
-
 	bool is_to_me(const proto::base::avAddress & addr)
 	{
 		// 遍历 interface 做比较
@@ -107,8 +95,15 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			// TODO 返回 no route to host 消息
 			return;
 		}
+
+		std::cerr << "got one pkt from " <<  av_address_to_string(avPacket->src())
+			<< " to " << av_address_to_string(avPacket->dest()) << " , now routing with " << interface->get_ifname() << std::endl;
+
 		// 转发过去
 		async_interface_write_packet(interface, avPacket, yield_context);
+
+		std::cerr << "routed ! " << std::endl;
+
 	}
 
 	void interface_writer(avif avinterface, boost::asio::yield_context yield_context)
@@ -140,16 +135,19 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		avinterface->_write_queue->push(value);
 	}
 
-	void async_interface_write_packet(avif * avinterface, avif::auto_avPacketPtr avPacket, boost::asio::yield_context handler)
+	template<class RealHandler>
+	inline BOOST_ASIO_INITFN_RESULT_TYPE(RealHandler,
+		void(boost::system::error_code))
+	async_interface_write_packet(avif * avinterface, avif::auto_avPacketPtr avPacket, BOOST_ASIO_MOVE_ARG(RealHandler) handler)
 	{
 		using namespace boost::asio;
 
 		boost::asio::detail::async_result_init<
-			boost::asio::yield_context, void(boost::system::error_code)> init(
-			BOOST_ASIO_MOVE_CAST(boost::asio::yield_context)(handler));
+			RealHandler, void(boost::system::error_code)> init(
+			BOOST_ASIO_MOVE_CAST(RealHandler)(handler));
 
 		async_interface_write_packet_impl<
-			BOOST_ASIO_HANDLER_TYPE(boost::asio::yield_context, void(boost::system::error_code))
+			BOOST_ASIO_HANDLER_TYPE(RealHandler, void(boost::system::error_code))
 		>(avinterface, avPacket, init.handler);
 		return init.result.get();
 	}
@@ -258,6 +256,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		avpktptr.reset( & avpkt, [](void*){});
 		async_interface_write_packet(interface, avpktptr, yield_context[ec]);
 
+		// FIXME 这里为何调用不到
 		// 做完成通知
 		handler(ec);
 	}
@@ -288,6 +287,21 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	RSA * find_RSA_pubkey(std::string address)
 	{
 		return NULL;
+	}
+
+	// 移除接口的时候调用
+	void remove_interface(std::string avifname)
+	{
+		std::cerr << "interface " << avifname << " removed " << std::endl;
+		// TODO 移除路由表上使用该接口的所有项目
+
+		std::vector<RouteItem>::iterator it = m_routes.begin();
+
+		while( (it = std::find_if(it, m_routes.end(), [avifname](const RouteItem & item){return item.second == avifname;}) ) != m_routes.end())
+		{
+			m_routes.erase(it++);
+		}
+		m_avifs.erase(avifname);
 	}
 
 	// TODO
