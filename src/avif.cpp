@@ -44,12 +44,12 @@ std::string av_address_to_string(const proto::base::avAddress & addr)
 void avif::construct()
 {
 	quitting = boost::make_shared< boost::atomic<bool> >(false);
-	_write_queue = boost::make_shared< boost::async_coro_queue< std::queue< std::pair< proto::base::avPacket*, boost::function<void(boost::system::error_code)> > > > >(
+	_write_queue = boost::make_shared< boost::async_coro_queue< std::queue< std::pair< auto_avPacketPtr, boost::function<void(boost::system::error_code)> > > > >(
 		boost::ref(get_io_service())
 	);
 }
 
-proto::base::avPacket* avif::async_read_packet(boost::asio::yield_context yield_context)
+boost::shared_ptr<proto::base::avPacket> avif::async_read_packet(boost::asio::yield_context yield_context)
 {
     return _impl->async_read_packet(yield_context);
 }

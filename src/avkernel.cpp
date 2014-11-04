@@ -46,6 +46,9 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		// TODO 移除 m_avifs 里相关条目
 		m_avifs.erase(avifname);
 		// TODO 移除路由表上使用该接口的所有项目
+		std::remove_if(m_routes.begin(), m_routes.end(), [avifname](const RouteItem & item){
+			return item.second == avifname;
+		});
 	}
 
 	bool is_to_me(const proto::base::avAddress & addr)
@@ -103,7 +106,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			return;
 		}
 		// 转发过去
-		async_interface_write_packet(interface, avPacket.get(), yield_context);
+		async_interface_write_packet(interface, avPacket, yield_context);
 	}
 
 	void interface_writer(avif avinterface, boost::asio::yield_context yield_context)
@@ -112,20 +115,22 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 		for(; ! (* avinterface.quitting) ;)
 		{
-			std::pair<proto::base::avPacket*, boost::function<void(boost::system::error_code)>>
+			std::pair<avif::auto_avPacketPtr, boost::function<void(boost::system::error_code)>>
 				popvalue = avinterface._write_queue->async_pop(yield_context[ec]);
 			if(ec)
+			{
 				break;
-			avinterface.async_write_packet(popvalue.first, yield_context[ec]);
+			}
+			avinterface.async_write_packet(popvalue.first.get(), yield_context[ec]);
 			popvalue.second(ec);
 		}
 		std::cerr << "interface_writer coroutine exited" << std::endl;
 	}
 
 	template<class RealHandler>
-	void async_interface_write_packet_impl(avif * avinterface, proto::base::avPacket* avPacket, RealHandler handler)
+	void async_interface_write_packet_impl(avif * avinterface, avif::auto_avPacketPtr avPacket, RealHandler handler)
 	{
-		std::pair<proto::base::avPacket*, boost::function<void(boost::system::error_code)> > value(
+		std::pair<avif::auto_avPacketPtr, boost::function<void(boost::system::error_code)> > value(
 			avPacket,
 			handler
 		);
@@ -133,7 +138,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		avinterface->_write_queue->push(value);
 	}
 
-	void async_interface_write_packet(avif * avinterface, proto::base::avPacket* avPacket, boost::asio::yield_context handler)
+	void async_interface_write_packet(avif * avinterface, avif::auto_avPacketPtr avPacket, boost::asio::yield_context handler)
 	{
 		using namespace boost::asio;
 
@@ -156,8 +161,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		for(; ! (* avinterface.quitting) ;)
 		{
 			// 读取一个数据包
-			boost::shared_ptr<proto::base::avPacket> avpkt;
-			avpkt.reset(avinterface.async_read_packet(yield_context[ec]));
+			boost::shared_ptr<proto::base::avPacket> avpkt = avinterface.async_read_packet(yield_context[ec]);
 
 			if(avpkt)
 			{
@@ -234,7 +238,10 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		// TODO 添加其他
 
 		// 添入发送列队
-		async_interface_write_packet(interface, &avpkt, yield_context[ec]);
+		avif::auto_avPacketPtr avpktptr;
+		// 空 deleter
+		avpktptr.reset( & avpkt, [](void*){});
+		async_interface_write_packet(interface, avpktptr, yield_context[ec]);
 
 		// 做完成通知
 		handler(ec);

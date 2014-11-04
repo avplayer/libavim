@@ -22,8 +22,8 @@ std::string avtcpif::allocate_ifname()
 
 avtcpif::~avtcpif()
 {
-    RSA_free(_rsa);
-    X509_free(_x509);
+   // RSA_free(_rsa);
+   // X509_free(_x509);
 }
 
 avtcpif::avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket> _sock, std::string local_addr, RSA * _key, X509 * cert)
@@ -172,7 +172,7 @@ bool avtcpif::async_write_packet(proto::base::avPacket* avpkt, boost::asio::yiel
 	return ! ec;
 }
 
-proto::base::avPacket* avtcpif::async_read_packet(boost::asio::yield_context yield_context)
+boost::shared_ptr<proto::base::avPacket> avtcpif::async_read_packet(boost::asio::yield_context yield_context)
 {
 	do {
 		proto::base::avTCPPacket pkt;
@@ -198,7 +198,8 @@ proto::base::avPacket* avtcpif::async_read_packet(boost::asio::yield_context yie
 
 		if(pkt.type() == 0)
 		{
-			proto::base::avPacket * avPacket = new proto::base::avPacket;
+			boost::shared_ptr<proto::base::avPacket> avPacket;
+			avPacket.reset(new proto::base::avPacket);
 			avPacket->CopyFrom(pkt.avpacket());
 			return avPacket;
 		}

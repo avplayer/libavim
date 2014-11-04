@@ -28,7 +28,7 @@ public: // 下面是实现 avif 接口
 	const proto::base::avAddress * if_address() const;
 	const proto::base::avAddress * remote_address() const;
 	RSA * get_rsa_key();
-	proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context);
+	boost::shared_ptr<proto::base::avPacket> async_read_packet(boost::asio::yield_context yield_context);
     bool async_write_packet(proto::base::avPacket*, boost::asio::yield_context yield_context);
 
 private:

@@ -39,7 +39,7 @@ namespace detail {
 		virtual RSA * get_rsa_key() = 0;
 
 		// 读取 av数据包
-		virtual proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context) = 0;
+		virtual boost::shared_ptr<proto::base::avPacket> async_read_packet(boost::asio::yield_context yield_context) = 0;
 
 		// 发送 av数据包
 		virtual bool async_write_packet(proto::base::avPacket*, boost::asio::yield_context yield_context) = 0;
@@ -74,7 +74,7 @@ namespace detail {
 		}
 
 		// 读取 av数据包
-		proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context)
+		boost::shared_ptr<proto::base::avPacket> async_read_packet(boost::asio::yield_context yield_context)
 		{
 			return _impl->async_read_packet(yield_context);
 		}
@@ -126,7 +126,7 @@ struct avif
 	}
 
 	// 读取 av数据包
-	proto::base::avPacket * async_read_packet(boost::asio::yield_context yield_context);
+	boost::shared_ptr<proto::base::avPacket> async_read_packet(boost::asio::yield_context yield_context);
 
 	// 发送 av数据包
 	bool async_write_packet(proto::base::avPacket* pkt, boost::asio::yield_context yield_context);
@@ -153,11 +153,14 @@ struct avif
 	}
 
 	boost::shared_ptr< boost::atomic<bool> > quitting;
+
+	typedef boost::shared_ptr<proto::base::avPacket> auto_avPacketPtr;
+
 	boost::shared_ptr<
 		boost::async_coro_queue<
 			std::queue<
 				std::pair<
-					proto::base::avPacket*, boost::function<void(boost::system::error_code)>
+					auto_avPacketPtr, boost::function<void(boost::system::error_code)>
 				>
 			>
 		>
