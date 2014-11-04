@@ -7,6 +7,8 @@
 #include <boost/make_shared.hpp>
 #include <boost/regex.hpp>
 
+#include <openssl/err.h>
+
 #include "avif.hpp"
 #include "avproto.hpp"
 #include "async_coro_queue.hpp"
@@ -213,13 +215,26 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 		// 第一次加密
 		std::string first_pubencode;
-		first_pubencode.resize(RSA_size(target_pubkey) + data.length());
-		first_pubencode.resize(RSA_public_encrypt(data.length(), (uint8_t*) data.data(),(uint8_t*) &first_pubencode[0], target_pubkey, RSA_PKCS1_OAEP_PADDING));
+
+		int encrypted_size;
+		// target_pubkey 没实现，为了测试暂时不加密
+//		first_pubencode.resize(RSA_size(target_pubkey) + data.length());
+//		first_pubencode.resize(RSA_public_encrypt(data.length(), (uint8_t*) data.data(),(uint8_t*) &first_pubencode[0], target_pubkey, RSA_PKCS1_OAEP_PADDING));
+
+		first_pubencode = data;
 
 		// 第二次签名
 		std::string second_sign;
 		second_sign.resize(RSA_size(interface->get_rsa_key()) + data.length());
-		second_sign.resize(RSA_private_encrypt(first_pubencode.length(), (uint8_t*) first_pubencode.data(),(uint8_t*) &second_sign[0], interface->get_rsa_key(), RSA_PKCS1_OAEP_PADDING));
+		encrypted_size = RSA_private_encrypt(
+				first_pubencode.length(),
+				(uint8_t*) first_pubencode.data(),
+				(uint8_t*) &second_sign[0],
+				interface->get_rsa_key(),
+				RSA_PKCS1_PADDING
+			);
+
+		second_sign.resize(encrypted_size);
 
 		// 把加密后的数据写入avPacket
 		avpkt.set_payload(second_sign);
@@ -232,7 +247,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 		avpkt.set_publickey(pubkey);
 		avpkt.mutable_src()->CopyFrom( av_address_from_string(target) );
-		avpkt.mutable_src()->CopyFrom( *interface->if_address() );
+		avpkt.mutable_dest()->CopyFrom( *interface->if_address() );
 		avpkt.set_upperlayerpotocol("avim");
 
 		// TODO 添加其他
@@ -272,6 +287,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	// 从本地数据找 RSA 公钥，找不到就返回 NULL , 让 agmp 协议其作用
 	RSA * find_RSA_pubkey(std::string address)
 	{
+		return NULL;
 	}
 
 	// TODO
