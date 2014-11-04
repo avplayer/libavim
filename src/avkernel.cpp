@@ -86,6 +86,63 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		return false;
 	}
 
+	// TODO 数据包接收过程的完整实现， 目前只实现个基础的垃圾
+	void process_recived_packet_to_me(boost::shared_ptr<proto::base::avPacket> avPacket, avif avinterface, boost::asio::yield_context yield_context)
+	{
+		std::cerr << "one pkt from " <<  av_address_to_string(avPacket->src()) << " sended to me" << std::endl;
+		std::string add, data;
+
+		// TODO 处理 agmp 协议等等等等
+		if( ! avPacket->has_payload() )
+			return ;
+
+		add = av_address_to_string(avPacket->src());
+
+		avPacket->publickey();
+
+		autoRSAptr rsa(RSA_new(), RSA_free);
+
+		rsa->e = BN_new();
+		BN_set_word(rsa->e, 65537);
+		rsa->n = BN_bin2bn((const unsigned char*) avPacket->publickey().data(), avPacket->publickey().length(), rsa->n);
+
+		// 第一阶段解密，先使用发送者的公钥解密
+		std::string stage1decypted;
+		stage1decypted.resize(RSA_size(rsa.get()) + avPacket->payload().length());
+		// data.res
+		stage1decypted.resize(
+			RSA_public_decrypt(
+				avPacket->payload().length(),
+				(uint8_t*) avPacket->payload().data(),
+				(uint8_t*) &stage1decypted[0],
+				rsa.get(),
+				RSA_PKCS1_PADDING
+			)
+		);
+
+		// 第二阶段解密，用自己的私钥解密
+		// 因为 find_RSA_pubkey 还没实现，所以发送方没有加密
+		// 暂时跳过
+#if 0
+		data.resize( RSA_size(avinterface.get_rsa_key()) + stage1decypted.length() );
+
+		data.resize(
+			RSA_private_decrypt(
+				stage1decypted.length(),
+				(uint8_t*) stage1decypted.data(),
+				(uint8_t*) &data[0],
+				avinterface.get_rsa_key(),
+				RSA_PKCS1_OAEP_PADDING
+			)
+		);
+#endif
+		data = stage1decypted;
+
+		// 挂入本地接收列队，等待上层读取
+		m_recv_buffer.push(std::make_pair(add, data));
+	}
+
+
 	void process_recived_packet(boost::shared_ptr<proto::base::avPacket> avPacket, avif avinterface, boost::asio::yield_context yield_context)
 	{
 
@@ -114,14 +171,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 		if( is_to_me(avPacket->dest()) )
 		{
-			std::cerr << "one pkt from " <<  av_address_to_string(avPacket->src()) << " sended to me" << std::endl;
-			std::string add,data;
-
-			//  TODO 解密数据
-
-			// 挂入本地接收列队，等待上层读取
-			m_recv_buffer.push(std::make_pair(add, data));
-			return;
+			return process_recived_packet_to_me(avPacket, avinterface, yield_context);
 		}
 
 		// 查看 ttl
