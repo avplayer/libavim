@@ -118,17 +118,20 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 
 		avPacket->set_time_to_live(avPacket->time_to_live() - 1);
 
+		std::cerr << "got one pkt from " <<  av_address_to_string(avPacket->src())
+			<< " to " << av_address_to_string(avPacket->dest());
+
 		// TODO 查找路由表
 		avif * interface = select_route(av_address_to_string(avPacket->dest()));
 
 		if(!interface)
 		{
 			// TODO 返回 no route to host 消息
+			std::cerr << " but no route to host, dropping packet!!" << interface->get_ifname() << std::endl;
 			return;
 		}
 
-		std::cerr << "got one pkt from " <<  av_address_to_string(avPacket->src())
-			<< " to " << av_address_to_string(avPacket->dest()) << " , now routing with " << interface->get_ifname() << std::endl;
+		std::cerr << " , now routing with " << interface->get_ifname() << std::endl;
 
 		// 转发过去
 		async_interface_write_packet(interface, avPacket, yield_context);
