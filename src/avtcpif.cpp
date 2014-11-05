@@ -22,14 +22,15 @@ std::string avtcpif::allocate_ifname()
 
 avtcpif::~avtcpif()
 {
-   // RSA_free(_rsa);
-   // X509_free(_x509);
+   RSA_free(_rsa);
+//   X509_free(_x509);
 }
 
 avtcpif::avtcpif(boost::shared_ptr<boost::asio::ip::tcp::socket> _sock, std::string local_addr, RSA * _key, X509 * cert)
 	: _rsa(_key)
 	, _x509(cert)
 {
+	RSA_up_ref(_rsa);
 	m_sock = _sock;
 	ifname = allocate_ifname();
 
