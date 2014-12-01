@@ -13,8 +13,8 @@
 #include "avproto/avjackif.hpp"
 #include "avproto/avkernel.hpp"
 
-#include "avim_proto/message.pb.h"
-#include "avim_proto/user.pb.h"
+#include "message.pb.h"
+#include "user.pb.h"
 
 static inline std::string i2d_X509(X509 * x509)
 {

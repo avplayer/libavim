@@ -5,7 +5,7 @@
 #include <string>
 #include <cstdint>
 #include <exception>
-#include "avim_proto/im.pb.h"
+#include "im.pb.h"
 
 struct im_decode_error : std::runtime_error
 {
