@@ -11,13 +11,13 @@ class avjackif : boost::noncopyable
 public:
 	std::vector<unsigned char> m_shared_key;
 public:
-	avjackif(std::shared_ptr<boost::asio::ip::tcp::socket> _sock);
+	avjackif(boost::asio::io_service& io);
 	~avjackif();
 
 	void set_pki(std::shared_ptr< RSA > _key, std::shared_ptr< X509 > cert);
 
 	// 登录握手
-	bool async_handshake(boost::asio::yield_context yield_context);
+	bool async_handshake(std::string host, std::string port, boost::asio::yield_context yield_context);
 
 	bool async_register_new_user(std::string user_name, boost::asio::yield_context yield_context);
 	bool async_register_user_check_name(std::string user_name, boost::asio::yield_context yield_context);
@@ -56,7 +56,8 @@ private:
 	boost::scoped_ptr<proto::av_address> m_local_addr;
 	boost::scoped_ptr<proto::av_address> m_remote_addr;
 
-	std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
+	boost::asio::io_service& m_io_service;
+	boost::asio::ip::tcp::socket m_sock;
 	boost::asio::streambuf m_recv_buf, m_send_buf;
 
 	std::shared_ptr<DH> m_dh;

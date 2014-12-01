@@ -66,8 +66,9 @@ void avjackif::set_pki(std::shared_ptr<RSA> _key, std::shared_ptr<X509> cert)
 }
 
 // av地址可以从证书里获取，所以外面无需传递进来
-avjackif::avjackif(std::shared_ptr<boost::asio::ip::tcp::socket> _sock)
-	: m_sock(_sock)
+avjackif::avjackif(boost::asio::io_service& io)
+	: m_io_service(io)
+	, m_sock(io)
 {
 	m_dh.reset(DH_new(), DH_free);
 	DH_generate_parameters_ex(m_dh.get(), 64, DH_GENERATOR_5, NULL);
@@ -81,28 +82,44 @@ avjackif::~avjackif()
 {
 }
 
-bool avjackif::async_handshake(boost::asio::yield_context yield_context)
+bool avjackif::async_handshake(std::string host, std::string port, boost::asio::yield_context yield_context)
 {
-	uint32_t hostl, netl;
-	std::string  buf;
+	boost::asio::ip::tcp::resolver resolver(m_io_service);
+	boost::asio::ip::tcp::resolver::query query(host, port);
 
-	auto random_pub_key = async_client_hello(yield_context);
+	try
+	{
+		auto endpointit = resolver.async_resolve(query, yield_context);
 
-	// 接着私钥加密 随机数
-	auto singned = RSA_private_encrypt(_rsa.get(), random_pub_key);
+		boost::asio::async_connect(m_sock, endpointit, yield_context);
 
-	proto::login login_packet;
-	login_packet.set_user_cert(i2d_X509(_x509.get()));
-	login_packet.set_encryped_radom_key(singned);
+		uint32_t hostl, netl;
+		std::string  buf;
 
-	boost::asio::async_write(*m_sock, boost::asio::buffer(av_proto::encode(login_packet)),
-		yield_context);
+		auto random_pub_key = async_client_hello(yield_context);
 
-	// 读取回应并解码
-	std::unique_ptr<proto::login_result> login_result(
-		(proto::login_result*)async_read_protobuf_message(*m_sock, yield_context));
+		// 接着私钥加密 随机数
+		auto singned = RSA_private_encrypt(_rsa.get(), random_pub_key);
 
-	return login_result.get()->result() == proto::login_result::LOGIN_SUCCEED;
+		proto::login login_packet;
+		login_packet.set_user_cert(i2d_X509(_x509.get()));
+		login_packet.set_encryped_radom_key(singned);
+
+		boost::asio::async_write(m_sock, boost::asio::buffer(av_proto::encode(login_packet)),
+			yield_context);
+
+		// 读取回应并解码
+		std::unique_ptr<proto::login_result> login_result(
+			(proto::login_result*)async_read_protobuf_message(m_sock, yield_context));
+
+		return login_result.get()->result() == proto::login_result::LOGIN_SUCCEED;
+
+	}catch(const boost::system::error_code& ec)
+	{
+		boost::system::error_code ignore_ec;
+		m_sock.close(ignore_ec);
+		return false;
+	}
 }
 
 std::string avjackif::async_client_hello(boost::asio::yield_context yield_context)
@@ -119,11 +136,11 @@ std::string avjackif::async_client_hello(boost::asio::yield_context yield_contex
 
 	auto tobesend = av_proto::encode(client_hello);
 
-	boost::asio::async_write(*m_sock, boost::asio::buffer(tobesend), yield_context);
+	boost::asio::async_write(m_sock, boost::asio::buffer(tobesend), yield_context);
 
 	// 解码
 	std::unique_ptr<proto::server_hello> server_hello(
-		(proto::server_hello*)async_read_protobuf_message(*m_sock, yield_context));
+		(proto::server_hello*)async_read_protobuf_message(m_sock, yield_context));
 
 	m_remote_addr.reset(new proto::av_address(
 		av_address_from_string(server_hello->server_av_address())));
@@ -159,9 +176,10 @@ bool avjackif::async_register_user_check_name(std::string user_name, boost::asio
 	proto::username_availability_check username_availability_check;
 	username_availability_check.set_user_name(user_name);
 
-	boost::asio::async_write(*m_sock, boost::asio::buffer(av_proto::encode(username_availability_check)), yield_context);
+	boost::asio::async_write(m_sock, boost::asio::buffer(av_proto::encode(username_availability_check)), yield_context);
 
-	std::unique_ptr<proto::username_availability_result> username_availability_result((proto::username_availability_result*)async_read_protobuf_message(*m_sock, yield_context));
+	std::unique_ptr<proto::username_availability_result>
+		username_availability_result((proto::username_availability_result*)async_read_protobuf_message(m_sock, yield_context));
 
 	return username_availability_result->result() == proto::username_availability_result::NAME_AVAILABLE;
 }
@@ -220,17 +238,18 @@ bool avjackif::async_register_new_user(std::string user_name, boost::asio::yield
 	user_register.set_rsa_pubkey(rsa_key);
 	user_register.set_csr(csrout);
 
-	boost::asio::async_write(*m_sock, boost::asio::buffer(av_proto::encode(user_register)), yield_context);
+	boost::asio::async_write(m_sock, boost::asio::buffer(av_proto::encode(user_register)), yield_context);
 
 	// 读取应答
-	std::unique_ptr<proto::user_register_result> user_register_result((proto::user_register_result*)async_read_protobuf_message(*m_sock, yield_context));
+	std::unique_ptr<proto::user_register_result>
+		user_register_result((proto::user_register_result*)async_read_protobuf_message(m_sock, yield_context));
 
 	return user_register_result->result() == proto::user_register_result::REGISTER_SUCCEED;
 }
 
 boost::asio::io_service& avjackif::get_io_service() const
 {
-	return m_sock->get_io_service();
+	return m_io_service;
 }
 
 std::string avjackif::get_ifname() const
@@ -268,13 +287,13 @@ boost::shared_ptr<proto::avpacket> avjackif::async_read_packet(boost::asio::yiel
 	boost::system::error_code ec;
 	std::string buf;
 	std::uint32_t l;
-	if( boost::asio::async_read(*m_sock, boost::asio::buffer(&l, sizeof(l)), yield_context[ec]) != 4)
+	if( boost::asio::async_read(m_sock, boost::asio::buffer(&l, sizeof(l)), yield_context[ec]) != 4)
 		return boost::shared_ptr<proto::avpacket>();
 
 	auto hostl = htonl(l);
 	buf.resize(htonl(l) + 4);
 	memcpy(&buf[0], &l, 4);
-	boost::asio::async_read(*m_sock, boost::asio::buffer(&buf[4], htonl(l)),
+	boost::asio::async_read(m_sock, boost::asio::buffer(&buf[4], htonl(l)),
 		boost::asio::transfer_exactly(hostl), yield_context[ec]);
 	if(ec)
 		return boost::shared_ptr<proto::avpacket>();
@@ -285,7 +304,7 @@ boost::shared_ptr<proto::avpacket> avjackif::async_read_packet(boost::asio::yiel
 bool avjackif::async_write_packet(proto::avpacket* pkt, boost::asio::yield_context yield_context)
 {
 	boost::system::error_code ec;
-	boost::asio::async_write(*m_sock, boost::asio::buffer(av_proto::encode(*pkt)), yield_context[ec]);
+	boost::asio::async_write(m_sock, boost::asio::buffer(av_proto::encode(*pkt)), yield_context[ec]);
 	return !ec;
 }
 
