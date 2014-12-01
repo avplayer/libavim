@@ -10,7 +10,7 @@
 #include <boost/thread.hpp>
 #include <boost/asio.hpp>
 
-#include "message.pb.h"
+#include "packet.pb.h"
 #include "async_coro_queue.hpp"
 
 #include "avproto/interface.hpp"

@@ -17,7 +17,7 @@
 #include "avproto/interface.hpp"
 #include "avproto/avkernel.hpp"
 #include "async_coro_queue.hpp"
-#include "message.pb.h"
+#include "packet.pb.h"
 
 extern const char* avim_root_ca_certificate_string;
 
