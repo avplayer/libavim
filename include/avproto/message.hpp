@@ -32,6 +32,9 @@ struct im_message{
 
 std::uint32_t is_encrypted_message(const std::string& payload);
 
+// 如果是控制消息, 请在 payload[1] 这个位置到最后取出 substr 直接调用 av_proto::decode()
+bool is_control_message(const std::string& payload);
+
 im_message decode_message(const std::string& payload);
 
 // 解码用的 key 是个 base64 编码的字符串. 加密类型和加密密钥都在里面. 这个 key 字符串由管理员在你进群的时候发送过来
