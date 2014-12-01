@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-project(libavprotocol)
+project(libavim)
+
+option(BUILD_C_WRAPPER "build a libavproto that exports C interface" OFF)
+
+find_package(Threads REQUIRED)
+find_package(Boost 1.54 REQUIRED COMPONENTS thread system program_options coroutine context regex date_time chrono filesystem )
+find_package(Protobuf REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 set(SRCS
 	src/root_ca.cpp
@@ -13,12 +20,15 @@ set(SRCS
 
 file(GLOB HDRS include/*.h*)
 
-add_library(avproto++ STATIC ${HDRS} ${SRCS})
-set_target_properties(avproto++ PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library(avim++ STATIC ${HDRS} ${SRCS})
+set_target_properties(avim++ PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-target_link_libraries(avproto++ avimproto ${PROTOBUF_LIBRARIES})
+target_link_libraries(avim++ avimproto ${PROTOBUF_LIBRARIES})
 
-if(MSVC)
-set_source_files_properties(src/avC_stub.cpp PROPERTIES COMPILE_FLAGS "/DDLL_EXPORTS=1")
-endif()
+target_include_directories(avim++ PUBLIC
+	${Boost_INCLUDE_DIRS}
+	${OPENSSL_INCLUDE_DIR})
 
+target_include_directories(avim++ PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
+
+add_subdirectory(wrapper)
