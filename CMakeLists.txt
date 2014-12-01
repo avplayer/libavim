@@ -25,6 +25,10 @@ set_target_properties(avim++ PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_link_libraries(avim++ avimproto ${PROTOBUF_LIBRARIES})
 
+link_directories(${Boost_LIBRARY_DIRS})
+target_link_libraries(avim++ ${Boost_LIBRARIES})
+target_link_libraries(avim++ ${OPENSSL_LIBRARIES})
+
 target_include_directories(avim++ PUBLIC
 	${Boost_INCLUDE_DIRS}
 	${OPENSSL_INCLUDE_DIR})
