@@ -405,6 +405,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		}
 		avinterface._write_queue->cancele();
 		remove_interface(avinterface.get_ifname());
+		avinterface.notify_remove();
 	}
 
 	void async_sendto_op(std::string target, std::string data, avkernel::ReadyHandler handler, boost::asio::yield_context yield_context)
