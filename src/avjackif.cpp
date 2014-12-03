@@ -7,6 +7,8 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
+#include <exception>
+#include <system_error>
 
 #include "avproto/serialization.hpp"
 
@@ -114,7 +116,7 @@ bool avjackif::async_handshake(std::string host, std::string port, boost::asio::
 
 		return login_result.get()->result() == proto::login_result::LOGIN_SUCCEED;
 
-	}catch(const boost::system::error_code& ec)
+	}catch(const std::exception& ec)
 	{
 		boost::system::error_code ignore_ec;
 		m_sock.close(ignore_ec);
