@@ -364,7 +364,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		boost::system::error_code ec;
 
 		while (!(*avinterface.quitting))
-		{
+		try{
 			// 读取一个数据包
 			boost::shared_ptr<proto::avpacket> avpkt = avinterface.async_read_packet(yield_context[ec]);
 
@@ -389,8 +389,12 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			}
 			else
 			{
-				* avinterface.quitting = true;
+				*avinterface.quitting = true;
 			}
+		}catch(const std::exception& e)
+		{
+			*avinterface.quitting = true;
+			// got exception during read
 		}
 		avinterface._write_queue->cancele();
 		remove_interface(avinterface.get_ifname());
