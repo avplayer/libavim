@@ -11,21 +11,12 @@
 #include <system_error>
 
 #include "avproto/serialization.hpp"
-
+#include "avproto/easyssl.hpp"
 #include "avproto/avjackif.hpp"
 #include "avproto/avkernel.hpp"
 
 #include "packet.pb.h"
 #include "user.pb.h"
-
-static inline std::string i2d_X509(X509 * x509)
-{
-	unsigned char * out = NULL;
-	int l = i2d_X509(x509, & out);
-	std::string ret((char*)out, l);
-	OPENSSL_free(out);
-	return ret;
-}
 
 template<typename AsyncStream>
 static inline google::protobuf::Message*
@@ -104,7 +95,7 @@ bool avjackif::async_handshake(std::string host, std::string port, boost::asio::
 		auto singned = RSA_private_encrypt(_rsa.get(), random_pub_key);
 
 		proto::login login_packet;
-		login_packet.set_user_cert(i2d_X509(_x509.get()));
+		login_packet.set_user_cert(X509_to_string(_x509.get()));
 		login_packet.set_encryped_radom_key(singned);
 
 		boost::asio::async_write(m_sock, boost::asio::buffer(av_proto::encode(login_packet)),

@@ -88,3 +88,19 @@ std::string encode_message(const message::message_packet& pkt)
 	}
 	return ret;
 }
+
+std::string encode_control_message(const std::string& sender, const google::protobuf::Message& msg)
+{
+	BOOST_ASSERT(sender.length() < 256);
+
+	std::string ret;
+	unsigned char type = TYPE_CONTROL_MESSAGE | (sender.empty() ? 0:TPYE_HAS_SENDER);
+	ret.append(1, (char) type);
+
+	if (!sender.empty())
+	{
+		ret.append(1, (char)sender.length());
+		ret.append(sender, 0, sender.length());
+	}
+	ret.append(av_proto::encode(msg));
+}

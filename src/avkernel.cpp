@@ -14,23 +14,13 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 
+#include "avproto/easyssl.hpp"
 #include "avproto/interface.hpp"
 #include "avproto/avkernel.hpp"
 #include "async_coro_queue.hpp"
 #include "packet.pb.h"
 
 extern const char* avim_root_ca_certificate_string;
-
-template<typename C, typename Pred>
-auto container_remove_if_all(C & c, Pred pred) -> decltype(std::begin(c))
-{
-	auto it = std::begin(c);
-	while ((it = std::find_if(it, std::end(c), pred) ) != std::end(c))
-	{
-		c.erase(it++);
-	}
-	return it;
-}
 
 class root_cert
 	: boost::noncopyable
@@ -160,9 +150,8 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		{
 			// TODO 验证并提取公钥，添加到存储中心
 			const unsigned char * in = (const unsigned char *) avPacket->payload().data();
-			X509 * crt = d2i_X509(0, &in, avPacket->payload().length());
-			auto pkey = X509_get_pubkey(crt);
-			X509_free(crt);
+			auto cert = X509_from_string(avPacket->payload());
+			auto pkey = X509_get_pubkey(cert.get());
 			RSA * rsa = EVP_PKEY_get1_RSA(pkey);
 			EVP_PKEY_free(pkey);
 
@@ -655,10 +644,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		pkt->set_upperlayerpotocol("pkreply");
 		pkt->set_time_to_live(64);
 
-		unsigned char* out = NULL;
-		int certlen = i2d_X509((X509*)interface->get_cert(), &out);
-		pkt->set_payload(out, certlen);
-		OPENSSL_free(out);
+		pkt->set_payload(X509_to_string((X509*)interface->get_cert()));
 
 		async_interface_write_packet(interface, pkt);
 	}
