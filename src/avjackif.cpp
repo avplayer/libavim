@@ -75,17 +75,10 @@ avjackif::~avjackif()
 {
 }
 
-bool avjackif::async_handshake(std::string host, std::string port, boost::asio::yield_context yield_context)
+bool avjackif::async_handshake(boost::asio::yield_context yield_context)
 {
-	boost::asio::ip::tcp::resolver resolver(m_io_service);
-	boost::asio::ip::tcp::resolver::query query(host, port);
-
 	try
 	{
-		auto endpointit = resolver.async_resolve(query, yield_context);
-
-		boost::asio::async_connect(m_sock, endpointit, yield_context);
-
 		uint32_t hostl, netl;
 		std::string  buf;
 
@@ -113,6 +106,25 @@ bool avjackif::async_handshake(std::string host, std::string port, boost::asio::
 		m_sock.close(ignore_ec);
 		return false;
 	}
+}
+
+bool avjackif::async_connect(std::string host, std::string port, boost::asio::yield_context& yield_context)
+{
+    try
+    {   boost::asio::ip::tcp::resolver resolver(m_io_service);
+        boost::asio::ip::tcp::resolver::query query(host, port);
+
+        auto endpointit = resolver.async_resolve(query, yield_context);
+
+        boost::asio::async_connect(m_sock, endpointit, yield_context);
+		return true;
+    }
+    catch(const std::exception& ec)
+    {
+        boost::system::error_code ignore_ec;
+        m_sock.close(ignore_ec);
+        return false;
+    }
 }
 
 std::string avjackif::async_client_hello(boost::asio::yield_context yield_context)

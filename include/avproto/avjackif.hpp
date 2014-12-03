@@ -16,8 +16,10 @@ public:
 
 	void set_pki(std::shared_ptr< RSA > _key, std::shared_ptr< X509 > cert);
 
+	   bool async_connect(std::string host, std::string port, boost::asio::yield_context& yield_context);
+
 	// 登录握手
-	bool async_handshake(std::string host, std::string port, boost::asio::yield_context yield_context);
+	bool async_handshake(boost::asio::yield_context yield_context);
 
 	bool async_register_new_user(std::string user_name, boost::asio::yield_context yield_context);
 	bool async_register_user_check_name(std::string user_name, boost::asio::yield_context yield_context);
