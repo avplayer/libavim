@@ -7,11 +7,10 @@
 
 inline std::string X509_to_string(X509* x509)
 {
-	std::string ret;
 	unsigned char* out = nullptr;
 	auto l = i2d_X509(x509, &out);
 
-	ret.assign((char*)out, l);
+	std::string ret((const char*)out, l);
 	CRYPTO_free(out);
 	return ret;
 }
