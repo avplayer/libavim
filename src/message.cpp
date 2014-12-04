@@ -103,4 +103,5 @@ std::string encode_control_message(const std::string& sender, const google::prot
 		ret.append(sender, 0, sender.length());
 	}
 	ret.append(av_proto::encode(msg));
+	return ret;
 }
