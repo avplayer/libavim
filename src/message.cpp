@@ -42,6 +42,18 @@ std::uint32_t is_encrypted_message(const std::string& payload)
 		return 0;
 }
 
+std::string group_message_get_sender(const std::string& payload)
+{
+	unsigned char type = *((unsigned char*)payload.data());
+
+	if (type& TPYE_HAS_SENDER)
+	{
+		int len = *((unsigned char*)(payload.data()+1));
+		return payload.substr(2, len);
+	}
+	return "";
+}
+
 /*
  * 第一个字节告诉你包有没有加密, 是不是群消息, 有没有把发送人的 av 地址重复放进去
  */
