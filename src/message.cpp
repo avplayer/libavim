@@ -89,6 +89,16 @@ std::string encode_im_message(const message::message_packet& pkt)
 	return ret;
 }
 
+std::shared_ptr< google::protobuf::Message > decode_control_message(const std::string payload)
+{
+	BOOST_ASSERT(is_group_message(payload));
+	unsigned char type = *(unsigned char*)payload.data();
+
+	BOOST_ASSERT((type&TPYE_HAS_SENDER) == 0);
+
+	return av_proto::decode(payload.substr(1));
+}
+
 std::string encode_control_message(const std::string& sender, const google::protobuf::Message& msg)
 {
 	BOOST_ASSERT(sender.length() < 256);
@@ -102,6 +112,7 @@ std::string encode_control_message(const std::string& sender, const google::prot
 		ret.append(1, (char)sender.length());
 		ret.append(sender, 0, sender.length());
 	}
+	// append 类型
 	ret.append(av_proto::encode(msg));
 	return ret;
 }
