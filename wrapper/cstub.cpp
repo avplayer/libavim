@@ -42,21 +42,6 @@ void av_stop()
 	delete avkernelthread;
 }
 
-static void jackif_login(std::shared_ptr<avjackif> avinterface, boost::asio::yield_context yield_context, boost::condition_variable & ready)
-{
-	std::string me_addr = av_address_to_string(*avinterface->if_address());
-
-	avinterface->async_handshake(yield_context) &&
-	// 添加接口
-	avkernel_intance->add_interface(avinterface) &&
-
-	// 添加路由表, metric越大，优先级越低
-	avkernel_intance->add_route(".+@.+", me_addr, avinterface->get_ifname(), 100);
-
-	// 返回
-	ready.notify_all();
-}
-
 // FIXME 添加错误处理
 int connect_to_avrouter(const char * keyfilename, const char * certfilename, const char * self_addr, const char * host, const char * port)
 {
@@ -66,7 +51,7 @@ int connect_to_avrouter(const char * keyfilename, const char * certfilename, con
 		std::cerr << "can not open avim.key" << std::endl;
 		exit(1);
 	}
-	RSA * rsa_key = PEM_read_bio_RSAPrivateKey(keyfile.get(), 0, 0, 0);
+	std::shared_ptr<RSA> rsa_key = { PEM_read_bio_RSAPrivateKey(keyfile.get(), 0, 0, 0), RSA_free};
 
 	std::shared_ptr<BIO> certfile(BIO_new_file(certfilename, "r"), BIO_free);
 	if(!certfile)
@@ -74,27 +59,39 @@ int connect_to_avrouter(const char * keyfilename, const char * certfilename, con
 		std::cerr << "can not open avim.crt" << std::endl;
 		exit(1);
 	}
-	X509 * x509_cert = PEM_read_bio_X509(certfile.get(), 0, 0, 0);
+	std::shared_ptr<X509>x509_cert = { PEM_read_bio_X509(certfile.get(), 0, 0, 0), X509_free };
 
 	certfile.reset();
 	keyfile.reset();
 
-	boost::asio::ip::tcp::resolver resolver(*av_service);
-
-	std::shared_ptr<boost::asio::ip::tcp::socket> avserver( new boost::asio::ip::tcp::socket(*av_service));
-
-	// 连接
-	boost::asio::connect(*avserver, resolver.resolve(boost::asio::ip::tcp::resolver::query(host, port ? port : "24950")));
-
 	// 构造 avtcpif
 	// 创建一个 tcp 的 avif 设备，然后添加进去
-	std::shared_ptr<avjackif> avinterface(new avjackif(avserver));
+	std::shared_ptr<avjackif> avinterface(new avjackif(*av_service));
 
+	avinterface->set_pki(rsa_key, x509_cert);
+
+	std::atomic< int > ret;
+	ret = -1;
 	boost::mutex m;
 	boost::condition_variable ready;
 	boost::unique_lock<boost::mutex> l(m);
- 	boost::asio::spawn(*av_service, boost::bind(&jackif_login, avinterface, _1, boost::ref(ready)));
+	boost::asio::spawn(*av_service, [&](boost::asio::yield_context yield_context)
+	{
+		if( avinterface->async_connect(host, port, yield_context))
+			if(	avinterface->async_handshake(yield_context))
+			{
+				if(avkernel_intance->add_interface(avinterface))
+				{
+					std::string me_addr = av_address_to_string(*avinterface->if_address());
+					if (avkernel_intance->add_route(".*@.*", me_addr, avinterface->get_ifname(), 100));
+						ret = 0;
+				}
+			}
+
+		ready.notify_all();
+	});
 	ready.wait(l);
+	return ret;
 }
 
 int av_sendto(const char * dest_address, const char * message, int len)
@@ -102,11 +99,13 @@ int av_sendto(const char * dest_address, const char * message, int len)
 	return avkernel_intance->sendto(dest_address, std::string(message, len));
 }
 
-int av_recvfrom(char * dest_address, char * message)
+int av_recvfrom(char* dest_address, char* message, int* len)
 {
 	std::string dest, msg;
 	auto ret = avkernel_intance->recvfrom(dest, msg);
 	strcpy(dest_address, dest.c_str());
+	BOOST_ASSERT( *len >= msg.length());
+	*len = msg.length();
 	memcpy(message, msg.c_str(), msg.length());
 	return ret;
 }
