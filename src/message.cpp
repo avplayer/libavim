@@ -46,7 +46,7 @@ std::uint32_t is_encrypted_message(const std::string& payload)
  * 第一个字节告诉你包有没有加密, 是不是群消息, 有没有把发送人的 av 地址重复放进去
  */
 
-im_message decode_message(const std::string& payload)
+im_message decode_im_message(const std::string& payload)
 {
 	im_message ret;
 	ret.is_encrypted_message = false;
@@ -76,7 +76,7 @@ im_message decode_message(const std::string& payload)
 	return ret;
 }
 
-std::string encode_message(const message::message_packet& pkt)
+std::string encode_im_message(const message::message_packet& pkt)
 {
 	std::string ret;
 	ret.push_back((char)0);

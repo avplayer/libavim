@@ -5,6 +5,7 @@
 #include <string>
 #include <cstdint>
 #include <exception>
+#include <memory>
 #include "im.pb.h"
 
 struct im_decode_error : std::runtime_error
@@ -35,13 +36,17 @@ std::uint32_t is_encrypted_message(const std::string& payload);
 // 如果是控制消息, 请在 payload[1] 这个位置到最后取出 substr 直接调用 av_proto::decode()
 bool is_control_message(const std::string& payload);
 
-im_message decode_message(const std::string& payload);
+im_message decode_im_message(const std::string& payload);
 
 // 解码用的 key 是个 base64 编码的字符串. 加密类型和加密密钥都在里面. 这个 key 字符串由管理员在你进群的时候发送过来
-im_message decode_message(const std::string& encryption_key, const std::string& payload);
+im_message decode_im_message(const std::string& encryption_key, const std::string& payload);
 
-std::string encode_message(const message::message_packet&);
-std::string encode_message(const std::string& encryption_key, const message::message_packet&);
+// 从 payload 里解码出非 im_message 消息.
+std::shared_ptr<google::protobuf::Message> decode_control_message(const std::string payload);
+std::shared_ptr<google::protobuf::Message> decode_control_message(const std::string payload, std::string& sender /*out*/);
+
+std::string encode_im_message(const message::message_packet&);
+std::string encode_im_message(const std::string& encryption_key, const message::message_packet&);
 
 // 序列化群消息以便 avkernel.send 使用
 std::string encode_group_message(const std::string& sender, const std::string& encryption_key, const message::message_packet&);
