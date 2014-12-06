@@ -2,7 +2,6 @@
 
 #include "avproto/serialization.hpp"
 #include <boost/asio.hpp>
-#include <iostream>
 
 enum message_header_type_indicator {
 	TPYE_ENCRYPTED = 0x01,
