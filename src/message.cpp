@@ -4,7 +4,10 @@
 #include <boost/asio.hpp>
 
 enum message_header_type_indicator {
+	// 表明消息加密了, 通常意味着是个 group 消息
+	// 加密的消息一定是 group 消息, 而 group 消息不一定加密
 	TPYE_ENCRYPTED = 0x01,
+	// 表明消息是群消息格式, 需要使用 decode_group_message 解码
 	TPYE_GROUP = 0x10,
 	// 发送者的地址也包进去, 供校验用, 可选
 	TPYE_HAS_SENDER = 0x20,
