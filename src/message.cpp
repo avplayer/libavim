@@ -89,6 +89,35 @@ std::string encode_im_message(const message::message_packet& pkt)
 	return ret;
 }
 
+std::string encode_group_message(const std::string& sender, const std::string& encryption_key, const message::message_packet& pkt)
+{
+	std::string ret;
+
+	unsigned char type = TPYE_GROUP;
+
+	if (!sender.empty())
+	{
+		type |= TPYE_HAS_SENDER;
+	}
+
+	if (!encryption_key.empty())
+	{
+		type |= TPYE_ENCRYPTED;
+	}
+
+	ret.push_back(*reinterpret_cast<char*>(&type));
+
+	if (!sender.empty())
+	{
+		unsigned char len = sender.length();
+		ret.push_back(*reinterpret_cast<char*>(&len));
+		ret.append(sender, 0, sender.length());
+	}
+
+	pkt.SerializeToString(&ret);
+	return ret;
+}
+
 std::shared_ptr<google::protobuf::Message> decode_control_message(const std::string payload)
 {
 	BOOST_ASSERT(is_group_message(payload));
@@ -109,10 +138,16 @@ std::string encode_control_message(const std::string& sender, const google::prot
 
 	if (!sender.empty())
 	{
-		ret.append(1, (char)sender.length());
+		unsigned char len = sender.length();
+		ret.push_back(*reinterpret_cast<char*>(&len));
 		ret.append(sender, 0, sender.length());
 	}
 	// append 类型
 	ret.append(av_proto::encode(msg));
 	return ret;
+}
+
+std::string encode_control_message(const google::protobuf::Message& msg)
+{
+	return encode_control_message(std::string(), msg);
 }

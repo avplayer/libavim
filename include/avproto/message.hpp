@@ -49,7 +49,10 @@ std::string encode_im_message(const message::message_packet&);
 std::string encode_im_message(const std::string& encryption_key, const message::message_packet&);
 
 // 序列化群消息以便 avkernel.send 使用
+// 如果群管理员决定不加密, 那么 encryption_key 为空即可
 std::string encode_group_message(const std::string& sender, const std::string& encryption_key, const message::message_packet&);
 
 // 序列化控制消息, 以便 avkernel.send 使用
 std::string encode_control_message(const std::string& sender, const google::protobuf::Message&);
+// 简化版, 协议里无需带上 sender 的时候使用
+std::string encode_control_message(const google::protobuf::Message&);
