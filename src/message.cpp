@@ -6,11 +6,11 @@
 enum message_header_type_indicator {
 	// 表明消息加密了, 通常意味着是个 group 消息
 	// 加密的消息一定是 group 消息, 而 group 消息不一定加密
-	TPYE_ENCRYPTED = 0x01,
+	TYPE_ENCRYPTED = 0x01,
 	// 表明消息是群消息格式, 需要使用 decode_group_message 解码
-	TPYE_GROUP = 0x10,
+	TYPE_GROUP = 0x10,
 	// 发送者的地址也包进去, 供校验用, 可选
-	TPYE_HAS_SENDER = 0x20,
+	TYPE_HAS_SENDER = 0x20,
 	// 表明是控制消息, 而非聊天消息
 	// 用于和机器人沟通群管理
 	TYPE_CONTROL_MESSAGE = 0x40,
@@ -27,7 +27,7 @@ bool is_group_message(const std::string& payload)
 {
 	unsigned char type = *((unsigned char*)payload.data());
 
-	return type & TPYE_GROUP;
+	return type & TYPE_GROUP;
 }
 
 bool is_plain_message(const std::string& payload)
@@ -39,7 +39,7 @@ bool is_plain_message(const std::string& payload)
 std::uint32_t is_encrypted_message(const std::string& payload)
 {
 	unsigned char type = *((unsigned char*)payload.data());
-	if (type & TPYE_ENCRYPTED)
+	if (type & TYPE_ENCRYPTED)
 		return ntohl(*reinterpret_cast<const uint32_t*>(payload.data()+1));
 	else
 		return 0;
@@ -49,7 +49,7 @@ std::string group_message_get_sender(const std::string& payload)
 {
 	unsigned char type = *((unsigned char*)payload.data());
 
-	if (type& TPYE_HAS_SENDER)
+	if (type& TYPE_HAS_SENDER)
 	{
 		int len = *((unsigned char*)(payload.data()+1));
 		return payload.substr(2, len);
@@ -70,7 +70,7 @@ im_message decode_im_message(const std::string& payload)
 	// payload 的第一个字节表示消息是否加密, 有的话, 返回失败, 必须使用对称加密的密钥解开
 	unsigned char type = *((unsigned char*)payload.data());
 
-	switch (type & TPYE_ENCRYPTED)
+	switch (type & TYPE_ENCRYPTED)
 	{
 		offset +=4;
 		throw im_decode_error(0, "encrypted message");
@@ -108,16 +108,16 @@ std::string encode_group_message(const std::string& sender, const std::string& e
 {
 	std::string ret;
 
-	unsigned char type = TPYE_GROUP;
+	unsigned char type = TYPE_GROUP;
 
 	if (!sender.empty())
 	{
-		type |= TPYE_HAS_SENDER;
+		type |= TYPE_HAS_SENDER;
 	}
 
 	if (!encryption_key.empty())
 	{
-		type |= TPYE_ENCRYPTED;
+		type |= TYPE_ENCRYPTED;
 	}
 
 	ret.push_back(*reinterpret_cast<char*>(&type));
@@ -144,17 +144,37 @@ std::shared_ptr<google::protobuf::Message> decode_control_message(const std::str
 	BOOST_ASSERT(is_group_message(payload));
 	unsigned char type = *(unsigned char*)payload.data();
 
-	BOOST_ASSERT((type&TPYE_HAS_SENDER) == 0);
+	BOOST_ASSERT((type&TYPE_HAS_SENDER) == 0);
 
 	return std::shared_ptr<google::protobuf::Message>(av_proto::decode(payload.substr(1)));
 }
+
+std::shared_ptr<google::protobuf::Message> decode_control_message(const std::string payload, std::string& sender)
+{
+	BOOST_ASSERT(is_group_message(payload));
+
+	unsigned char type = *(unsigned char*)payload.data();
+
+	size_t offset = 1;
+
+	if (type & TYPE_HAS_SENDER)
+	{
+		offset ++;
+		auto name_len = * reinterpret_cast<const unsigned char*>(payload.data()+1);
+		sender = payload.substr(offset, name_len);
+		offset += name_len;
+	}
+
+	return std::shared_ptr<google::protobuf::Message>(av_proto::decode(payload.substr(offset)));
+}
+
 
 std::string encode_control_message(const std::string& sender, const google::protobuf::Message& msg)
 {
 	BOOST_ASSERT(sender.length() < 256);
 
 	std::string ret;
-	unsigned char type = TYPE_CONTROL_MESSAGE | (sender.empty() ? 0:TPYE_HAS_SENDER);
+	unsigned char type = TYPE_CONTROL_MESSAGE | (sender.empty() ? 0:TYPE_HAS_SENDER);
 	ret.append(1, (char) type);
 
 	if (!sender.empty())
