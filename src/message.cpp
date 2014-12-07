@@ -135,10 +135,9 @@ std::shared_ptr<google::protobuf::Message> decode_control_message(const std::str
 	BOOST_ASSERT(is_group_message(payload));
 	unsigned char type = *(unsigned char*)payload.data();
 
-	BOOST_ASSERT(type&TPYE_HAS_SENDER);
-	
-	int sender_length = *(unsigned char*)(payload.data()+1);
-	return std::shared_ptr<google::protobuf::Message>(av_proto::decode(payload.substr(2+sender_length)));
+	BOOST_ASSERT((type&TPYE_HAS_SENDER) == 0);
+
+	return std::shared_ptr<google::protobuf::Message>(av_proto::decode(payload.substr(1)));
 }
 
 std::string encode_control_message(const std::string& sender, const google::protobuf::Message& msg)
@@ -146,8 +145,7 @@ std::string encode_control_message(const std::string& sender, const google::prot
 	BOOST_ASSERT(sender.length() < 256);
 
 	std::string ret;
-	unsigned char type = TPYE_GROUP | TYPE_CONTROL_MESSAGE | (sender.empty() ? 0:TPYE_HAS_SENDER);
-	
+	unsigned char type = TYPE_CONTROL_MESSAGE | (sender.empty() ? 0:TPYE_HAS_SENDER);
 	ret.append(1, (char) type);
 
 	if (!sender.empty())
