@@ -101,7 +101,7 @@ std::string encode_im_message(const message::message_packet& pkt)
 	return ret;
 }
 
-std::string encode_group_message(const std::string& sender, const std::string& encryption_key, const message::message_packet& pkt)
+std::string encode_group_message(const std::string& sender, const std::string& encryption_key, uint32_t keyid, const message::message_packet& pkt)
 {
 	std::string ret;
 
@@ -118,6 +118,12 @@ std::string encode_group_message(const std::string& sender, const std::string& e
 	}
 
 	ret.push_back(*reinterpret_cast<char*>(&type));
+
+	if (!encryption_key.empty())
+	{
+		uint32_t net_byteorder_keyid = htonl(keyid);
+		ret.append(reinterpret_cast<const char*>(&net_byteorder_keyid), 4);
+	}
 
 	if (!sender.empty())
 	{
