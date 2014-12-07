@@ -42,6 +42,18 @@ std::uint32_t is_encrypted_message(const std::string& payload)
 		return 0;
 }
 
+std::string group_message_get_sender(const std::string& payload)
+{
+	unsigned char type = *((unsigned char*)payload.data());
+
+	if (type& TPYE_HAS_SENDER)
+	{
+		int len = *((unsigned char*)(payload.data()+1));
+		return payload.substr(2, len);
+	}
+	return "";
+}
+
 /*
  * 第一个字节告诉你包有没有加密, 是不是群消息, 有没有把发送人的 av 地址重复放进去
  */
@@ -123,9 +135,10 @@ std::shared_ptr<google::protobuf::Message> decode_control_message(const std::str
 	BOOST_ASSERT(is_group_message(payload));
 	unsigned char type = *(unsigned char*)payload.data();
 
-	BOOST_ASSERT((type&TPYE_HAS_SENDER) == 0);
-
-	return std::shared_ptr<google::protobuf::Message>(av_proto::decode(payload.substr(1)));
+	BOOST_ASSERT(type&TPYE_HAS_SENDER);
+	
+	int sender_length = *(unsigned char*)(payload.data()+1);
+	return std::shared_ptr<google::protobuf::Message>(av_proto::decode(payload.substr(2+sender_length)));
 }
 
 std::string encode_control_message(const std::string& sender, const google::protobuf::Message& msg)
@@ -133,7 +146,8 @@ std::string encode_control_message(const std::string& sender, const google::prot
 	BOOST_ASSERT(sender.length() < 256);
 
 	std::string ret;
-	unsigned char type = TYPE_CONTROL_MESSAGE | (sender.empty() ? 0:TPYE_HAS_SENDER);
+	unsigned char type = TPYE_GROUP | TYPE_CONTROL_MESSAGE | (sender.empty() ? 0:TPYE_HAS_SENDER);
+	
 	ret.append(1, (char) type);
 
 	if (!sender.empty())
