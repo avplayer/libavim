@@ -141,7 +141,7 @@ std::string encode_group_message(const std::string& sender, const std::string& e
 
 std::shared_ptr<google::protobuf::Message> decode_control_message(const std::string payload)
 {
-	BOOST_ASSERT(is_group_message(payload));
+	BOOST_ASSERT(is_control_message(payload));
 	unsigned char type = *(unsigned char*)payload.data();
 
 	BOOST_ASSERT((type&TYPE_HAS_SENDER) == 0);
@@ -151,7 +151,7 @@ std::shared_ptr<google::protobuf::Message> decode_control_message(const std::str
 
 std::shared_ptr<google::protobuf::Message> decode_control_message(const std::string payload, std::string& sender)
 {
-	BOOST_ASSERT(is_group_message(payload));
+	BOOST_ASSERT(is_control_message(payload));
 
 	unsigned char type = *(unsigned char*)payload.data();
 
