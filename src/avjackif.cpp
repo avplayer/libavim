@@ -99,7 +99,6 @@ bool avjackif::async_handshake(boost::asio::yield_context yield_context)
 			(proto::login_result*)async_read_protobuf_message(m_sock, yield_context));
 
 		return login_result.get()->result() == proto::login_result::LOGIN_SUCCEED;
-
 	}catch(const std::exception& ec)
 	{
 		boost::system::error_code ignore_ec;

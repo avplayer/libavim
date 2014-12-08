@@ -363,8 +363,44 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	{
 		boost::system::error_code ec;
 
-		while (!(*avinterface.quitting))
 		try{
+
+		// 发送边界网关协议, 宣告存在
+
+		{std::string payload;
+		proto::bgp bgp;
+		bgp.set_time_salt(std::time(NULL));
+		*bgp.mutable_announce() = * avinterface.if_address();
+
+		bgp.SerializeToString(&payload);
+
+		proto::avpacket avpkt;
+
+		avpkt.set_payload(RSA_private_encrypt(avinterface.get_rsa_key(), payload));
+
+		// 附上自己的 publickey
+		std::string pubkey;
+		pubkey.resize(BN_num_bytes(avinterface.get_rsa_key()->n));
+
+		BN_bn2bin(avinterface.get_rsa_key()->n,(uint8_t*)&pubkey[0]);
+
+		avpkt.set_publickey(pubkey);
+		avpkt.mutable_dest()->CopyFrom(*avinterface.remote_address());
+		avpkt.mutable_src()->CopyFrom(*avinterface.if_address());
+		avpkt.set_upperlayerpotocol("avim");
+
+		// TODO 添加其他
+		avpkt.set_time_to_live(64);
+
+		// 添入发送列队
+		avif::auto_avPacketPtr avpktptr;
+		// 空 deleter
+		avpktptr.reset(&avpkt, [](void*){});
+		async_interface_write_packet(&avinterface, avpktptr, yield_context[ec]);
+		}
+
+		while (!(*avinterface.quitting))
+		{
 			// 读取一个数据包
 			boost::shared_ptr<proto::avpacket> avpkt = avinterface.async_read_packet(yield_context[ec]);
 
@@ -391,6 +427,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			{
 				*avinterface.quitting = true;
 			}
+		}
 		}catch(const std::exception& e)
 		{
 			*avinterface.quitting = true;
