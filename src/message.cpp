@@ -68,7 +68,8 @@ im_message decode_im_message(const std::string& payload)
 	int offset = 1;
 
 	// payload 的第一个字节表示消息是否加密, 有的话, 返回失败, 必须使用对称加密的密钥解开
-	unsigned char type = *((unsigned char*)payload.data());
+	unsigned char type = *reinterpret_cast<const unsigned char*>(payload.data());
+	ret.is_group_message = type & TYPE_GROUP;
 
 	switch (type & TYPE_ENCRYPTED)
 	{
@@ -76,15 +77,20 @@ im_message decode_im_message(const std::string& payload)
 		throw im_decode_error(0, "encrypted message");
 	}
 
-	if (type & 0xF0)
+
+	if (type & TYPE_HAS_SENDER)
 	{
 		// 非聊天消息
+		offset ++;
+		auto name_len = * reinterpret_cast<const unsigned char*>(payload.data()+1);
+		ret.sender = payload.substr(offset, name_len);
+		offset += name_len;
 	}
 
 	ret.is_control_message = false;
 	ret.is_message = true;
 
-	if (!ret.impkt.ParseFromArray(payload.data()+offset, payload.length()-1))
+	if (!ret.impkt.ParseFromString(payload.substr(offset)))
 	{
 		throw im_decode_error(1, "protobuf decode error");
 	}
