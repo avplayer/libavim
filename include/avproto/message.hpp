@@ -19,11 +19,8 @@ struct im_decode_error : std::runtime_error
 struct im_message{
 	bool is_encrypted_message;
 	bool is_group_message;
-	bool is_control_message;
-	bool is_message;
 
 	std::string sender;
-
 	message::message_packet impkt;
 };
 

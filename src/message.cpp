@@ -81,14 +81,11 @@ im_message decode_im_message(const std::string& payload)
 	if (type & TYPE_HAS_SENDER)
 	{
 		// 非聊天消息
+		auto name_len = * reinterpret_cast<const unsigned char*>(payload.data()+offset);
 		offset ++;
-		auto name_len = * reinterpret_cast<const unsigned char*>(payload.data()+1);
 		ret.sender = payload.substr(offset, name_len);
 		offset += name_len;
 	}
-
-	ret.is_control_message = false;
-	ret.is_message = true;
 
 	if (!ret.impkt.ParseFromString(payload.substr(offset)))
 	{
