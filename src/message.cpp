@@ -141,7 +141,7 @@ std::string encode_group_message(const std::string& sender, const std::string& e
 		ret.append(sender, 0, sender.length());
 	}
 
-	pkt.SerializeToString(&ret);
+	pkt.AppendToString(&ret);
 	return ret;
 }
 
