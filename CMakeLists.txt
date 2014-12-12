@@ -18,6 +18,7 @@ set(SRCS
 	src/interface.cpp
 	src/avjackif.cpp
 	src/message.cpp
+	src/easyssl.cpp
 )
 
 file(GLOB HDRS include/*.h*)
