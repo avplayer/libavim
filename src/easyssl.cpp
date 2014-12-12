@@ -1,4 +1,5 @@
 #include <string.h>
+#include <algorithm>
 #include <openssl/pem.h>
 #include "avproto/easyssl.hpp"
 
