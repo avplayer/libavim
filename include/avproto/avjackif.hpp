@@ -38,7 +38,7 @@ public: // 下面是实现 avif 接口
 	void notify_remove();
 
 	void set_root_ca(X509 * ca) { m_root_ca = ca;}
-	boost::shared_ptr<proto::avpacket> async_read_packet(boost::asio::yield_context yield_context);
+	std::shared_ptr<proto::avpacket> async_read_packet(boost::asio::yield_context yield_context);
     bool async_write_packet(proto::avpacket*, boost::asio::yield_context yield_context);
 
 protected:

@@ -201,9 +201,9 @@ bool avjackif::async_register_new_user(std::string user_name, boost::asio::yield
 	_rsa.reset(RSA_generate_key(2048, 65537, 0, 0), RSA_free);
 
 	// 然后生成 CSR
-	boost::shared_ptr<X509_REQ> csr(X509_REQ_new(), X509_REQ_free);
+	std::shared_ptr<X509_REQ> csr(X509_REQ_new(), X509_REQ_free);
 
-	boost::shared_ptr<EVP_PKEY> pkey(EVP_PKEY_new(), EVP_PKEY_free);
+	std::shared_ptr<EVP_PKEY> pkey(EVP_PKEY_new(), EVP_PKEY_free);
 	EVP_PKEY_set1_RSA(pkey.get(), _rsa.get());
 
 	// 添加证书申请信息
@@ -287,13 +287,13 @@ void avjackif::notify_remove()
 	signal_notify_remove();
 }
 
-boost::shared_ptr<proto::avpacket> avjackif::async_read_packet(boost::asio::yield_context yield_context)
+std::shared_ptr<proto::avpacket> avjackif::async_read_packet(boost::asio::yield_context yield_context)
 {
 	boost::system::error_code ec;
 	std::string buf;
 	std::uint32_t l;
 	if( boost::asio::async_read(m_sock, boost::asio::buffer(&l, sizeof(l)), yield_context[ec]) != 4)
-		return boost::shared_ptr<proto::avpacket>();
+		return std::shared_ptr<proto::avpacket>();
 
 	auto hostl = htonl(l);
 	buf.resize(htonl(l) + 4);
@@ -301,9 +301,9 @@ boost::shared_ptr<proto::avpacket> avjackif::async_read_packet(boost::asio::yiel
 	boost::asio::async_read(m_sock, boost::asio::buffer(&buf[4], htonl(l)),
 		boost::asio::transfer_exactly(hostl), yield_context[ec]);
 	if(ec)
-		return boost::shared_ptr<proto::avpacket>();
+		return std::shared_ptr<proto::avpacket>();
 
-	return boost::shared_ptr<proto::avpacket>(dynamic_cast<proto::avpacket*>(av_proto::decode(buf)));
+	return std::shared_ptr<proto::avpacket>(dynamic_cast<proto::avpacket*>(av_proto::decode(buf)));
 }
 
 bool avjackif::async_write_packet(proto::avpacket* pkt, boost::asio::yield_context yield_context)

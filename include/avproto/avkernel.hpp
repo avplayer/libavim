@@ -20,7 +20,7 @@ enum av_route_op{
 class avkernel : boost::noncopyable
 {
 	boost::asio::io_service & io_service;
-	boost::shared_ptr<detail::avkernel_impl> _impl;
+	std::shared_ptr<detail::avkernel_impl> _impl;
 
 	// ifname -> avif 的映射关系
 public:

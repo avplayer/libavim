@@ -42,7 +42,7 @@ namespace detail {
 		virtual void notify_remove() = 0;
 
 		// 读取 av数据包
-		virtual boost::shared_ptr<proto::avpacket> async_read_packet(boost::asio::yield_context yield_context) = 0;
+		virtual std::shared_ptr<proto::avpacket> async_read_packet(boost::asio::yield_context yield_context) = 0;
 		// 发送 av数据包
 		virtual bool async_write_packet(proto::avpacket*, boost::asio::yield_context yield_context) = 0;
 	};
@@ -86,7 +86,7 @@ namespace detail {
 		}
 
 		// 读取 av数据包
-		boost::shared_ptr<proto::avpacket> async_read_packet(boost::asio::yield_context yield_context)
+		std::shared_ptr<proto::avpacket> async_read_packet(boost::asio::yield_context yield_context)
 		{
 			return _impl->async_read_packet(yield_context);
 		}
@@ -147,7 +147,7 @@ struct avif
 	}
 
 	// 读取 av数据包
-	boost::shared_ptr<proto::avpacket> async_read_packet(boost::asio::yield_context yield_context);
+	std::shared_ptr<proto::avpacket> async_read_packet(boost::asio::yield_context yield_context);
 
 	// 发送 av数据包
 	bool async_write_packet(proto::avpacket* pkt, boost::asio::yield_context yield_context);
@@ -173,11 +173,11 @@ struct avif
 		_write_queue = other._write_queue;
 	}
 
-	boost::shared_ptr< std::atomic<bool> > quitting;
+	std::shared_ptr< std::atomic<bool> > quitting;
 
-	typedef boost::shared_ptr<proto::avpacket> auto_avPacketPtr;
+	typedef std::shared_ptr<proto::avpacket> auto_avPacketPtr;
 
-	boost::shared_ptr<
+	std::shared_ptr<
 		boost::async_coro_queue<
 			std::queue<
 				std::pair<

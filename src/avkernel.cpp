@@ -42,7 +42,7 @@ public:
 
 	bool verity(X509* cert)
 	{
-		boost::shared_ptr<X509_STORE_CTX> storeCtx(X509_STORE_CTX_new(), X509_STORE_CTX_free);
+		std::shared_ptr<X509_STORE_CTX> storeCtx(X509_STORE_CTX_new(), X509_STORE_CTX_free);
 		X509_STORE_CTX_init(storeCtx.get(), m_store,cert,NULL);
 		X509_STORE_CTX_set_flags(storeCtx.get(), X509_V_FLAG_CB_ISSUER_CHECK);
 		return X509_verify_cert(storeCtx.get());
@@ -55,7 +55,7 @@ class avkernel;
 namespace detail
 {
 
-typedef boost::shared_ptr<RSA> autoRSAptr;
+typedef std::shared_ptr<RSA> autoRSAptr;
 
 struct RouteItem
 {
@@ -67,7 +67,7 @@ struct RouteItem
 
 bool operator<(const RouteItem& lhs, const RouteItem& rhs) { return lhs.metric < rhs.metric; }
 
-class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this<avkernel_impl>
+class avkernel_impl : boost::noncopyable , public std::enable_shared_from_this<avkernel_impl>
 {
 	const X509 * const m_root_ca_cert;
 
@@ -122,7 +122,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 	}
 
 	// TODO 数据包接收过程的完整实现， 目前只实现个基础的垃圾
-	void process_recived_packet_to_me(boost::shared_ptr<proto::avpacket> avPacket, avif avinterface, boost::asio::yield_context yield_context)
+	void process_recived_packet_to_me(std::shared_ptr<proto::avpacket> avPacket, avif avinterface, boost::asio::yield_context yield_context)
 	{
 		std::cerr << "one pkt from " <<  av_address_to_string(avPacket->src()) << " sended to me" << std::endl;
 		std::string add;
@@ -185,7 +185,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 			m_recv_buffer.push(std::make_pair(add, payload));
 	}
 
-	void process_recived_packet(boost::shared_ptr<proto::avpacket> avPacket, avif avinterface, boost::asio::yield_context yield_context)
+	void process_recived_packet(std::shared_ptr<proto::avpacket> avPacket, avif avinterface, boost::asio::yield_context yield_context)
 	{
 		BOOST_SCOPE_EXIT_ALL(this, avPacket)
 		{
@@ -402,7 +402,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		while (!(*avinterface.quitting))
 		{
 			// 读取一个数据包
-			boost::shared_ptr<proto::avpacket> avpkt = avinterface.async_read_packet(yield_context[ec]);
+			std::shared_ptr<proto::avpacket> avpkt = avinterface.async_read_packet(yield_context[ec]);
 
 			if (avpkt)
 			{
@@ -591,7 +591,7 @@ class avkernel_impl : boost::noncopyable , public boost::enable_shared_from_this
 		key_item.avaddr = address;
 		AVPubKey key;
 		RSA_up_ref(pubkey);
-		key.rsa = boost::shared_ptr<RSA>(pubkey, RSA_free);
+		key.rsa = std::shared_ptr<RSA>(pubkey, RSA_free);
 		key.valid_until = valid_until;
 		key_item.keys.push_back(key);
 		std::sort(key_item.keys.begin(), key_item.keys.end(), [](const AVPubKey& lhs, const AVPubKey& rhs){ return lhs.valid_until > rhs.valid_until; });
@@ -774,7 +774,7 @@ public:
 		: io_service(_io_service)
 		, m_recv_buffer(io_service)
 		, m_root_ca_cert([](){
-			boost::shared_ptr<BIO> bp(BIO_new_mem_buf((void*)avim_root_ca_certificate_string, strlen(avim_root_ca_certificate_string)), BIO_free);
+			std::shared_ptr<BIO> bp(BIO_new_mem_buf((void*)avim_root_ca_certificate_string, strlen(avim_root_ca_certificate_string)), BIO_free);
 			return PEM_read_bio_X509(bp.get(), 0, 0, 0);
 		}())
 		, timer1(io_service)
@@ -798,7 +798,7 @@ public:
 avkernel::avkernel(boost::asio::io_service& _io_service)
 	: io_service(_io_service)
 {
-	_impl = boost::make_shared<detail::avkernel_impl>(boost::ref(io_service));
+	_impl = std::make_shared<detail::avkernel_impl>(std::ref(io_service));
 	_impl->timer1_start();
 	_impl->timer2_start();
 }
