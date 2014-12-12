@@ -1,0 +1,75 @@
+// 这个文件是 avim base 协议的 protobuf 定义. 使用 protoc 编译为对应的 C++ 代码
+package proto;
+import public "address.proto";
+
+// 这个就是基础包， av们相互通信使用的就是这个
+message avpacket{
+	required av_address src = 1 ; // 发送方地址
+	required av_address dest = 2; // 目的地地址
+	optional bytes publickey = 3 ; // 客户端公钥
+	required uint32 time_to_live = 4 [ default = 64 ];
+	required string upperlayerpotocol = 6 [ default = "avim" ] ; // 表明上层软件是何种协议。
+	optional uint32 encrype_method = 7 [ default = 0 ]; // 加密类型， 目前就定义了 0 表示， RSA 加密。必须是对称体系
+
+	optional bool msg_dont_route = 9;
+	optional uint64 timestamp = 10; // 发送时间, 精度为从 2012 年 12 月 12 日开始的每个滴答计时间.每 1ms 增加 1
+
+	// 这个表示需要对方返回一个消息已经收到的提示
+	// 对方需要使用 agmp 协议返回一个确认消息
+	// 收到后 客户端的 av_send 才会返回成功
+	// 否则会超时一段时间后重发，3次重试后返回失败
+	message ack_control{
+		required uint64 ack_seq = 1;
+	};
+	optional ack_control need_seq = 11;
+
+	// 可选的消息内容, 消息一定是用 src 的私钥加密的，因此必须首先用 src 的公钥解密
+	// 解密后的消息，还得必须再次用 dest 的 私钥解密。但是对于一些特定的消息，
+	// 因为 src 并不知道 dest 的公钥，所以可能用 src 的公钥解密后就是名文了。
+	// 通常这个特定的消息就是 src 向 dest 发送消息，而 dest 不曾向 src 发送过任何消息，因此需要询问dest公钥
+	// 只有这个消息是未经过 dest 加密的。这个消息，upperlayerpotocol 一定是 pkask， 当然，消息内容是空的。。。
+	// dest 会回复一个 pkreply 消息。这个消息也是加密的
+
+	// 表示 payload 使用只有群友知道的密码加密的
+//	optional bool synmaptic_encrypted = 12;
+	optional bytes payload = 8;
+}
+
+//=====================================================================================================
+// 下面的消息定义,都是定义在 avPacket 的 payload 里面的. payload 里的消息直接调用 serialization.hpp 反序列化出来
+//=====================================================================================================
+
+// 这些消息是特殊的, 由 avim 协议层直接处理的消息.
+
+// avnet Group Message Protocol, 类似 IGMP 消息在 IP 网中的作用
+// 主要作用为证书的传递，注意，单纯的询问 证书，使用 pkask 消息
+// 在 avPacket::upperlayerpotocol 里这个协议是 "agmp"
+message agmp {
+
+	message PKREPLY{
+		required bytes x509_cert = 1;
+	};
+
+	message NOROUTTOHOST{
+		required av_address host = 1;
+	};
+
+	message TTLOUT{
+		required av_address host = 1;
+	};
+
+	optional PKREPLY pkreply = 1;
+	optional NOROUTTOHOST noroutetohost = 2;
+	optional TTLOUT ttlout = 3;
+}
+
+// 边界路由控制协议
+message bgp{
+	// 地址宣称, 用于向路由器声明地址, 使路由器改动路由表指向自己
+	// 由于 bgp 是签名的, 所以是无法伪造的, 防止他人进行路由攻击
+	// salt 必须是秒为单位的当前时间, unix 格式
+	required uint64 time_salt = 1;
+	// 路由器应该检查 这里的地址和 发件人是吻合的
+	optional av_address announce = 2;
+};
+

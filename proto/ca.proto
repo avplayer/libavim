@@ -1,0 +1,46 @@
+package proto.ca;
+
+// ===========================================================================
+//   这个是 CA 签名服务器和 avrouter 交互协议
+//   生成命令:
+//       protoc -I=. --cpp_out=. ca.proto
+// ===========================================================================
+
+// avrouter -> CA || CA -> peter
+message csr_request{
+	required bytes fingerprint = 1;
+	required bytes csr = 2;
+};
+
+// peter -> CA || CA -> avrouter
+message csr_result{
+	enum csr_code {
+		OK = 0;
+		FAILED_INVALID_CSR = 100;
+		FAILED_DUPLICATED_NAME = 101;
+		// 无权限, 你不是 avrouter
+		// 其实是压根不鸟你, 不会给你这个答复, 呵呵
+		FAILED_NO_PRIVILEGE = 102;
+	}
+	required csr_code result = 1;
+	required bytes fingerprint = 2;
+	required bytes cert = 3;
+};
+
+// avrouter -> CA || avim -> avrouter
+message cert_pull{
+	// RSA 公钥的 sha1 摘要
+	required bytes fingerprint = 1;
+};
+
+message cert_pull_result{
+	// 没 cert 就没这个, 所以是 optional
+	optional bytes cert = 1;
+};
+
+// ca -> avrouter
+// ca 主动连接上 router 后发送宣誓!
+message ca_announce{
+	required string ca_name = 1;
+	optional int32 ca_level = 2;
+};

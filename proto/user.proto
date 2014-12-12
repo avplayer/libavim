@@ -1,0 +1,150 @@
+package proto;
+import public "address.proto";
+
+// ===========================================================================
+//   这个是新的 JACK 写的router服务器所使用的协议层消息定义 用户登录相关协议
+//   生成命令:
+//       protoc -I=. --cpp_out=. user.proto
+// ===========================================================================
+
+// 连接上后执行的第一个包
+message client_hello
+{
+	required string client = 1;
+	required uint32 version = 2;
+	required bytes random_g = 3;
+	required bytes random_p = 4;
+	required bytes random_pub_key = 5;
+}
+
+message server_hello
+{
+	required string servername = 1;
+	required uint32 version = 2;
+	required bytes random_pub_key = 3;
+	// 服务器的 av 地址
+	required string server_av_address = 4;
+}
+
+// 这个是登录的包, 当然通常是第二个包, 除非... 你不登录, 要注册, 呵呵
+message login
+{
+	// 用户的证书
+	required bytes user_cert = 1;
+	// 用私钥将收到的 random_pub_key 加密一下
+	// 如果服务器比对后即证明客户端的身份了
+	required bytes encryped_radom_key = 2;
+	optional string other_info = 3;
+}
+
+message login_result
+{
+	// 0 表示成功， 其他数字表示失败原因
+	enum login_result_code {
+		LOGIN_SUCCEED = 0;
+		NO_SUCH_USER = 1;
+		PEREMISSON_DENIED = 2;
+		PUBLIC_KEY_MISMATCH = 3;
+	}
+	required login_result_code result = 1;
+	// TODO 其他信息
+}
+
+// 这个是注册的第一步, 检查用户名是否已经被占用
+message username_availability_check
+{
+	required string user_name = 1;
+}
+
+message username_availability_result
+{
+	enum username_availability_result_code {
+		// 可用, 基本注册成功. 但是小心手抖的慢了, 就这么一会功夫被人抢注
+		NAME_AVAILABLE = 0;
+		// 名字包含非法字符, 或者服务器不允许使用的一些特定名字
+		NAME_DISALLOW = 1;
+		// 名字已经被占用
+		NAME_TAKEN = 2;
+	}
+	required username_availability_result_code result = 1;
+}
+
+message user_register
+{
+	required string user_name = 1;
+	required bytes rsa_pubkey = 2;
+	// CSR , 证书注册申请, 这个文件交给 CA 处理生成证书
+	// 服务器也从这个文件提取一些必要的信息
+	required bytes CSR = 3;
+
+	// 这些是额外的没有包含进证书的信息
+	optional string mail_address = 4;
+	optional string cell_phone = 5;
+}
+
+message user_register_result
+{
+	enum user_register_result_code {
+		// 注册成功! 最兴奋的消息了
+		REGISTER_SUCCEED = 0;
+		// 没 CA 导致注册失败
+		REGISTER_FAILED_CA_BUSY = 1;
+
+		// 失败, 你手慢了, 名字已经有了
+		REGISTER_FAILED_NAME_TAKEN = 2;
+		// key 长度不符合服务器设定的最小密钥长度规则
+		// 请重新生成密钥
+		REGISTER_FAILED_TOO_SHORT_KEY = 3;
+
+		// 名字不符合要求
+		REGISTER_FAILED_NAME_DISALLOW = 4;
+
+		// CA 出了问题, 注册失败
+		REGISTER_FAILED_CA_DOWN = 5;
+		// CSR 校验错误
+		REGISTER_FAILED_CSR_VERIFY_FAILURE = 6;
+	}
+	required user_register_result_code result = 1;
+	// 如果是立即返回CERT, 这里就携带了需要的证书了
+	optional bytes cert = 2;
+}
+
+// 如果把证书密钥丢了, 或者密钥设置的加密锁的密码忘了, 那么就需要重新生成证书,
+// 发送如下的请求到服务器并等待验证
+
+message user_cert_lost_request
+{
+	// 注册时填入的用户名 (通常就是 av地址里的用户名部分)
+	required string user_name = 1;
+
+	// 注册的时候填写的邮箱地址
+	optional string mail_address = 3;
+	// 注册的时候填写的手机号码
+	optional string cell_phone = 4;
+}
+
+// 发送邮箱里输入的超长认证验证码
+message user_cert_lost_verify
+{
+	// 取回密码的时候邮件里提供的安全验证
+	required string secret_code = 1;
+}
+
+
+
+////////////////////////////////////////////////////
+message buddy{
+	required av_address addr = 1;
+	// optional nick name set by user
+	optional string nick = 2;
+	repeated string labels = 3;
+}
+
+message buddy_list{
+	repeated buddy buddies = 1;
+};
+
+
+message request_buddy_list{
+	
+};

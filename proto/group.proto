@@ -1,0 +1,61 @@
+package proto.group;
+import public "address.proto";
+
+message security_key {
+	required bytes key = 1;
+	// 同时携带上一次key, 校验之用
+	required bytes prev_key = 2;
+	// 密钥总是提前发送, 然后到这个时间点后才生效
+	required uint64 valid_until = 3;
+
+	// 每次换 key 增加 1
+	// 方便解码的时候知道使用第一个钥匙
+	required uint32 key_id = 4;
+};
+
+// 这个消息是群成员控制消息, 用来实现群成员控制
+message member_change{
+	// 可选的发送者, 如果是群系统消息, 这个就是空的
+	// 否则就可能是管理员发的, 或者是其他成员发的
+	optional proto.av_address sender = 1;
+
+	// 管理员下发的新的对称加密密钥
+	// 群成员要注意检查发件人是否是管理员
+	// 注意这个消息通过 group 通道, 而是管理员给每个成员直接发送的消息
+	// 因此这个消息的类型是 is_control_message() && ! is_message()
+	optional security_key key = 2;
+
+	// bot 下发, 新成员通知
+	repeated proto.av_address new_bie = 3;
+
+	// bot 下发, 成员退群通知
+	repeated proto.av_address gone_bie = 4;
+
+	enum buddy_state {
+		ONLINE = 0;
+		OFFLINE = 1;
+		HIDDING = 2;
+	}
+
+	message buddy_state_notify{
+		required proto.av_address who = 1;
+		required buddy_state state = 2;
+	};
+
+	// 定时下发, 和有成员上线下线的时候发送成员变动消息
+	repeated buddy_state_notify buddy_status = 5;
+};
+
+message list_request{
+    required uint32 id = 1;
+}
+
+message list_response{
+    enum result_code{
+        OK = 0;
+        FAILED_INVALID_GROUP_ID = 1; // request group not exists
+        FAILED_NO_PRIVILEGE = 100;   // permission denied, maybe invalid member
+    };
+    required result_code result = 1 [default = OK];
+    repeated string list = 2;
+}

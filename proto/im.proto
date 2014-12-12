@@ -1,0 +1,70 @@
+
+package message;
+import public "address.proto";
+
+//=====================================================================================================
+// 下面的消息定义,都是定义在 avPacket 的 payload 里面的. payload 里的消息直接调用 serialization.hpp 反序列化出来
+//=====================================================================================================
+
+// 这些消息是由 IM 客户端处理的, IM 消息.
+
+message text_message{
+	required string text = 1;
+	optional string fontname = 2;
+	optional float fontsie = 3;
+	optional string hlink = 4;
+}
+
+message img_message{
+	// 图片, 类型隐去.
+	required bytes image = 1;
+	optional bytes image_digest = 2;
+	// 表示是运动图片, 比如 GIF 格式
+	optional bool animated = 3;
+	optional string hlink = 4;
+};
+
+message emoji_message{
+	required string emoji = 1;
+	optional string theme = 2;
+	optional bytes custom_image = 3;
+};
+
+// 这个是管理员下发的对称解密密钥消息, 该消息不会加密哦!
+message symmetry_encryption_key_distribution{
+	enum EncryptionType{
+		AES = 0;
+		DES = 1;
+		BlowFish = 2;
+		TwoFish = 3;
+		Camellia = 4;
+		DES3_EDE = 5;
+	}
+
+	required EncryptionType keytype = 1;
+	required bytes key = 2;
+}
+
+message avim_message{
+	optional text_message item_text = 1;
+	optional img_message item_image = 2;
+	optional emoji_message item_emoji = 3;
+	// 管理员下发的对称加密用的密钥
+	// 收到这个消息后, 之后的消息就得用这个密钥加密
+	// 不用这个密钥加密的消息都会被群友丢弃哦!
+	optional symmetry_encryption_key_distribution item_key = 20;
+}
+
+// 这个是总消息, avpacket 里的 payload 存的就是这个, 当然还会有一些头信息, 这些都由 decode_message 处理了.
+message message_packet {
+	// 聊天消息, 就是各种类型的消息的重复嘛.
+	// 所以这里用了个 repeated
+	repeated avim_message avim = 1;
+	// 在一个会话中的消息序列号
+	// 每次发送就加 1
+	// 这个不是必须的, 但是要求有的话能有助于客户端排序好代码
+	optional uint64	serial = 2;
+
+	// 发送方地址, 群聊的话就是必须的
+	optional proto.av_address sender = 3;
+};
