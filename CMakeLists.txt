@@ -9,6 +9,8 @@ find_package(Boost 1.54 REQUIRED COMPONENTS thread system program_options corout
 find_package(Protobuf REQUIRED)
 find_package(OpenSSL REQUIRED)
 
+add_subdirectory(proto)
+
 set(SRCS
 	src/root_ca.cpp
 	src/serialization.cpp
