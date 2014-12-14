@@ -292,7 +292,7 @@ class avkernel_impl : boost::noncopyable , public std::enable_shared_from_this<a
 
 	void async_recvfrom(std::string & target, std::string & data, avkernel::ReadyHandler handler)
 	{
-		boost::asio::spawn(io_service, boost::bind(&avkernel_impl::async_recvfrom_op, shared_from_this(), boost::ref(target), boost::ref(data), handler, _1 ));
+		boost::asio::spawn(io_service, std::bind(&avkernel_impl::async_recvfrom_op, shared_from_this(), boost::ref(target), boost::ref(data), handler, std::placeholders::_1 ));
 	}
 
 	int recvfrom(std::string & target, std::string &data)
@@ -421,7 +421,7 @@ class avkernel_impl : boost::noncopyable , public std::enable_shared_from_this<a
 					}
 				}
 
-				boost::asio::spawn(io_service, boost::bind(&avkernel_impl::process_recived_packet, shared_from_this(), avpkt, avinterface, _1));
+				boost::asio::spawn(io_service, std::bind(&avkernel_impl::process_recived_packet, shared_from_this(), avpkt, avinterface, std::placeholders::_1));
 			}
 			else
 			{
@@ -556,7 +556,7 @@ class avkernel_impl : boost::noncopyable , public std::enable_shared_from_this<a
 
 	void async_sendto(const std::string & target, const std::string & data, avkernel::ReadyHandler handler)
 	{
-		boost::asio::spawn(io_service, boost::bind(&avkernel_impl::async_sendto_op, shared_from_this(), target, data, handler, _1 ));
+		boost::asio::spawn(io_service, std::bind(&avkernel_impl::async_sendto_op, shared_from_this(), target, data, handler, std::placeholders::_1 ));
 	}
 
 	int sendto(const std::string & target, const std::string & data)
@@ -715,7 +715,7 @@ class avkernel_impl : boost::noncopyable , public std::enable_shared_from_this<a
 		if (m_quitting)
 			return;
 		timer1.expires_from_now(boost::posix_time::milliseconds(500));
-		timer1.async_wait(boost::bind(&avkernel_impl::timer1_tick, shared_from_this(),_1));
+		timer1.async_wait(std::bind(&avkernel_impl::timer1_tick, shared_from_this(), std::placeholders::_1));
 	}
 
 	void timer2_start()
@@ -723,7 +723,7 @@ class avkernel_impl : boost::noncopyable , public std::enable_shared_from_this<a
 		if (m_quitting)
 			return;
 		timer2.expires_from_now(boost::posix_time::seconds(300));
-		timer2.async_wait(boost::bind(&avkernel_impl::timer2_tick, shared_from_this(),_1));
+		timer2.async_wait(std::bind(&avkernel_impl::timer2_tick, shared_from_this(), std::placeholders::_1));
 	}
 	void timer2_tick(boost::system::error_code ec)
 	{
@@ -814,8 +814,8 @@ bool avkernel::add_interface(avif avinterface)
 		<< av_address_to_string(*avinterface.remote_address()) << std::endl;
 
 	_impl->m_avifs.insert(std::make_pair(avinterface.get_ifname(), avinterface));
-	boost::asio::spawn(io_service, boost::bind(&detail::avkernel_impl::interface_runner, _impl, avinterface, _1));
-	boost::asio::spawn(io_service, boost::bind(&detail::avkernel_impl::interface_writer, _impl, avinterface, _1));
+	boost::asio::spawn(io_service, std::bind(&detail::avkernel_impl::interface_runner, _impl, avinterface, std::placeholders::_1));
+	boost::asio::spawn(io_service, std::bind(&detail::avkernel_impl::interface_writer, _impl, avinterface, std::placeholders::_1));
 	return _impl->m_avifs.find(avinterface.get_ifname()) != _impl->m_avifs.end();
 }
 
