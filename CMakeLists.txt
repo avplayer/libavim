@@ -7,7 +7,9 @@ option(BUILD_C_WRAPPER "build a libavproto that exports C interface" OFF)
 find_package(Threads REQUIRED)
 find_package(Boost 1.54 REQUIRED COMPONENTS thread system program_options coroutine context regex date_time chrono filesystem )
 find_package(Protobuf REQUIRED)
+if(NOT OPENSSL_LIBRARIES)
 find_package(OpenSSL REQUIRED)
+endif()
 
 add_subdirectory(proto)
 
