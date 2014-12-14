@@ -5,6 +5,7 @@
 #include <string>
 #include <cstdint>
 #include <exception>
+#include <stdexcept>
 #include <memory>
 #include "im.pb.h"
 
