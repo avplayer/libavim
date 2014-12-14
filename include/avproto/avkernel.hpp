@@ -25,7 +25,7 @@ class avkernel : boost::noncopyable
 	// ifname -> avif 的映射关系
 public:
 
-	typedef boost::function<void(boost::system::error_code)> ReadyHandler;
+	typedef std::function<void(boost::system::error_code)> ReadyHandler;
 
 	avkernel(boost::asio::io_service &);
 	~avkernel();

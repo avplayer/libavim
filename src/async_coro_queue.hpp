@@ -93,12 +93,12 @@ public: // typetraits
 	typedef typename ListType::const_reference const_reference;
 private:
 	// async_pop 的回调原型
-	typedef	boost::function<
+	typedef	std::function<
 		void(boost::system::error_code ec, value_type)
 	> async_pop_handler_type;
 
 	// async_wait 的回调原型
-	typedef	boost::function <
+	typedef	std::function <
 		void(boost::system::error_code ec)
 	> async_wait_handler_type;
 

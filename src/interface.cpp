@@ -47,7 +47,7 @@ std::string av_address_to_string(const proto::av_address & addr)
 void avif::construct()
 {
 	quitting = std::make_shared< std::atomic<bool> >(false);
-	_write_queue = std::make_shared< boost::async_coro_queue< std::queue< std::pair< auto_avPacketPtr, boost::function<void(boost::system::error_code)> > > > >(
+	_write_queue = std::make_shared< boost::async_coro_queue< std::queue< std::pair< auto_avPacketPtr, std::function<void(boost::system::error_code)> > > > >(
 		boost::ref(get_io_service())
 	);
 }

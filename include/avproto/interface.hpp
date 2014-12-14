@@ -181,7 +181,7 @@ struct avif
 		boost::async_coro_queue<
 			std::queue<
 				std::pair<
-					auto_avPacketPtr, boost::function<void(boost::system::error_code)>
+					auto_avPacketPtr, std::function<void(boost::system::error_code)>
 				>
 			>
 		>

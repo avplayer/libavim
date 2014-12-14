@@ -5,6 +5,7 @@
 #include <boost/asio.hpp>
 
 #include <avproto.hpp>
+#include <avproto/easyssl.hpp>
 
 #include <openssl/bio.h>
 #include <openssl/pem.h>
@@ -18,14 +19,14 @@
 
 static boost::asio::io_service * av_service;
 static avkernel * avkernel_intance;
-static boost::thread * avkernelthread;
+static std::thread * avkernelthread;
 
 static void create_avkernel_instance()
 {
 	av_service = new boost::asio::io_service;
 	avkernel_intance = new avkernel(*av_service);
 
-	avkernelthread = new boost::thread(boost::bind(&boost::asio::io_service::run, av_service));
+	avkernelthread = new std::thread(std::bind(&boost::asio::io_service::run, av_service));
 }
 
 void av_start()
@@ -46,24 +47,20 @@ void av_stop()
 // FIXME 添加错误处理
 int connect_to_avrouter(const char * keyfilename, const char * certfilename, const char * self_addr, const char * host, const char * port)
 {
-	std::shared_ptr<BIO> keyfile(BIO_new_file(keyfilename, "r"), BIO_free);
-	if(!keyfile)
+	std::shared_ptr<RSA> rsa_key = load_RSA_from_file(keyfilename);
+	std::shared_ptr<X509>x509_cert = load_X509_from_file(certfilename);
+
+	if(!rsa_key)
 	{
 		std::cerr << "can not open avim.key" << std::endl;
 		exit(1);
 	}
-	std::shared_ptr<RSA> rsa_key = { PEM_read_bio_RSAPrivateKey(keyfile.get(), 0, 0, 0), RSA_free};
 
-	std::shared_ptr<BIO> certfile(BIO_new_file(certfilename, "r"), BIO_free);
-	if(!certfile)
+	if(!x509_cert)
 	{
 		std::cerr << "can not open avim.crt" << std::endl;
 		exit(1);
 	}
-	std::shared_ptr<X509>x509_cert = { PEM_read_bio_X509(certfile.get(), 0, 0, 0), X509_free };
-
-	certfile.reset();
-	keyfile.reset();
 
 	// 构造 avtcpif
 	// 创建一个 tcp 的 avif 设备，然后添加进去

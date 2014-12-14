@@ -100,8 +100,8 @@ class avkernel_impl : boost::noncopyable , public std::enable_shared_from_this<a
 	struct async_wait_packet_pred_handler
 	{
 		boost::posix_time::ptime deadline;
-		boost::function<bool (const proto::avpacket &)> pred;
-		boost::function<void (boost::system::error_code)> handler;
+		std::function<bool (const proto::avpacket &)> pred;
+		std::function<void (boost::system::error_code)> handler;
 	};
 
 	std::list<async_wait_packet_pred_handler> m_async_wait_packet_pred_handler_preprocess_list;
@@ -317,7 +317,7 @@ class avkernel_impl : boost::noncopyable , public std::enable_shared_from_this<a
 
 		while (!(*avinterface.quitting))
 		{
-			std::pair<avif::auto_avPacketPtr, boost::function<void(boost::system::error_code)>>
+			std::pair<avif::auto_avPacketPtr, std::function<void(boost::system::error_code)>>
 				popvalue = avinterface._write_queue->async_pop(yield_context[ec]);
 			if (ec)
 			{
@@ -338,7 +338,7 @@ class avkernel_impl : boost::noncopyable , public std::enable_shared_from_this<a
 			RealHandler, void(boost::system::error_code)> init(
 			BOOST_ASIO_MOVE_CAST(RealHandler)(handler));
 
-		std::pair<avif::auto_avPacketPtr, boost::function<void(boost::system::error_code)> > value(
+		std::pair<avif::auto_avPacketPtr, std::function<void(boost::system::error_code)> > value(
 			avPacket,
 			init.handler
 		);
@@ -350,7 +350,7 @@ class avkernel_impl : boost::noncopyable , public std::enable_shared_from_this<a
 
 	void async_interface_write_packet(avif * avinterface, avif::auto_avPacketPtr avPacket)
 	{
-		std::pair<avif::auto_avPacketPtr, boost::function<void(boost::system::error_code)> > value(
+		std::pair<avif::auto_avPacketPtr, std::function<void(boost::system::error_code)> > value(
 			avPacket,
 			[](boost::system::error_code){}
 		);
