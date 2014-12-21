@@ -31,11 +31,13 @@ struct im_message{
 
 std::uint32_t is_encrypted_message(const std::string& payload);
 
-// 看消息发送方是不是很自觉的把 sender 填入,否则不予转发.
-std::string group_message_get_sender(const std::string& payload);
-
+// 查看下是否为群消息
+bool is_group_message(const std::string& payload);
 // 如果是控制消息, 请在 payload[1] 这个位置到最后取出 substr 直接调用 av_proto::decode()
 bool is_control_message(const std::string& payload);
+
+// 看消息发送方是不是很自觉的把 sender 填入,否则不予转发.
+std::string group_message_get_sender(const std::string& payload);
 
 im_message decode_im_message(const std::string& payload);
 std::string encode_im_message(const message::message_packet&);
