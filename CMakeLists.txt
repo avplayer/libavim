@@ -1,11 +1,24 @@
-﻿cmake_minimum_required(VERSION 3.1)
+﻿cmake_minimum_required(VERSION 3.0)
 
 project(libavim)
+
+include(CheckCCompilerFlag)
+check_c_compiler_flag(-fvisibility=hidden HAS_VISIVILITY)
+if (HAS_VISIVILITY)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+endif()
+
+check_c_compiler_flag(-std=c++11 HAS_CXX11)
+if (HAS_CXX11)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c++11")
+endif()
 
 option(BUILD_C_WRAPPER "build a libavproto that exports C interface" OFF)
 
 find_package(Threads REQUIRED)
-find_package(Boost 1.54 REQUIRED COMPONENTS thread system program_options coroutine context regex date_time chrono filesystem )
+find_package(Boost 1.55 REQUIRED COMPONENTS thread system program_options coroutine context regex date_time chrono filesystem )
 find_package(Protobuf REQUIRED)
 if(NOT OPENSSL_LIBRARIES)
 find_package(OpenSSL REQUIRED)
@@ -42,6 +55,6 @@ target_include_directories(avim++ PUBLIC
 
 target_include_directories(avim++ PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )
 
-target_compile_features(avim++ PUBLIC cxx_range_for cxx_nullptr cxx_rvalue_references cxx_uniform_initialization)
+# target_compile_features(avim++ PUBLIC cxx_range_for cxx_nullptr cxx_rvalue_references cxx_uniform_initialization)
 
 add_subdirectory(wrapper)
