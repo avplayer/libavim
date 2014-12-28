@@ -1,4 +1,4 @@
-
+﻿
 #pragma once
 
 #include <avproto/interface.hpp>
